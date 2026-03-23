@@ -3,7 +3,6 @@ package com.rentflow.scanner
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
 import com.rentflow.scanner.data.repository.AuthRepository
 import com.rentflow.scanner.ui.navigation.AppNavigation
 import com.rentflow.scanner.ui.navigation.Routes
@@ -17,7 +16,6 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         val startDest = if (authRepository.isLoggedIn()) Routes.HOME else Routes.LOGIN
         setContent {
             RentFlowScannerTheme {
