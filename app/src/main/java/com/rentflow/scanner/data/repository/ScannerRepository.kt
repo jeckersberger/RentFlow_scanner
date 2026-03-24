@@ -1,6 +1,7 @@
 package com.rentflow.scanner.data.repository
 
 import android.content.Context
+import com.rentflow.scanner.data.api.AdHocBookingRequest
 import com.rentflow.scanner.data.api.ScanRequest
 import com.rentflow.scanner.data.api.ScannerApi
 import com.rentflow.scanner.data.api.SessionCreateRequest
@@ -112,6 +113,19 @@ class ScannerRepository @Inject constructor(
 
     suspend fun deletePendingScan(id: Long) {
         pendingScanDao.deleteById(id)
+    }
+
+    suspend fun adHocBooking(equipmentId: String, barcode: String, notes: String? = null): Result<Equipment> {
+        return try {
+            val response = scannerApi.adHocBooking(AdHocBookingRequest(equipmentId, barcode, notes))
+            if (response.isSuccessful && response.body()?.data != null) {
+                Result.success(response.body()!!.data!!)
+            } else {
+                Result.failure(Exception(response.body()?.message ?: "Ad-hoc booking failed"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
     private suspend fun queueOffline(barcode: String, scanType: String, projectId: String?, notes: String?) {

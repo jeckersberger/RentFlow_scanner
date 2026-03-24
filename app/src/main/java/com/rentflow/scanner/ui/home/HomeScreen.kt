@@ -8,12 +8,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.rentflow.scanner.R
 import com.rentflow.scanner.ui.components.PendingQueueBadge
+import com.rentflow.scanner.ui.theme.Warning
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -23,6 +25,7 @@ fun HomeScreen(
     onNavigateToCheckIn: () -> Unit,
     onNavigateToInventory: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToAdHoc: () -> Unit = {},
     onLogout: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
@@ -62,12 +65,13 @@ fun HomeScreen(
             WorkflowCard(Icons.Default.Output, stringResource(R.string.nav_checkout), onClick = onNavigateToCheckOut)
             WorkflowCard(Icons.Default.Input, stringResource(R.string.nav_checkin), onClick = onNavigateToCheckIn)
             WorkflowCard(Icons.Default.Inventory, stringResource(R.string.nav_inventory), onClick = onNavigateToInventory)
+            WorkflowCard(Icons.Default.Warehouse, stringResource(R.string.adhoc_title), onClick = onNavigateToAdHoc, iconTint = Warning)
         }
     }
 }
 
 @Composable
-private fun WorkflowCard(icon: ImageVector, label: String, onClick: () -> Unit) {
+private fun WorkflowCard(icon: ImageVector, label: String, onClick: () -> Unit, iconTint: Color? = null) {
     Card(
         onClick = onClick,
         modifier = Modifier
@@ -81,7 +85,7 @@ private fun WorkflowCard(icon: ImageVector, label: String, onClick: () -> Unit) 
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(16.dp),
         ) {
-            Icon(icon, contentDescription = null, modifier = Modifier.size(32.dp))
+            Icon(icon, contentDescription = null, modifier = Modifier.size(32.dp), tint = iconTint ?: LocalContentColor.current)
             Text(label, style = MaterialTheme.typography.titleLarge)
         }
     }

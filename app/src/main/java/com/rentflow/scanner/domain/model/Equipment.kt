@@ -8,6 +8,7 @@ data class Equipment(
     val status: EquipmentStatus,
     val location: String?,
     val projectName: String?,
+    val projectId: String? = null,
     val rfidTag: String?,
     val imageUrl: String?,
 )

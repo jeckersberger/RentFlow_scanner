@@ -37,3 +37,9 @@ data class SessionCreateRequest(
     val project_id: String? = null,
     val location_id: String? = null,
 )
+
+data class AdHocBookingRequest(
+    val equipment_id: String,
+    val barcode: String,
+    val notes: String? = null,
+)

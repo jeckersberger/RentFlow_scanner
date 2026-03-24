@@ -12,10 +12,21 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
+import java.time.temporal.ChronoUnit
 import javax.inject.Inject
 
+enum class ProjectUrgency { OVERDUE, TODAY, UPCOMING, NORMAL }
+
+data class ProjectWithUrgency(
+    val project: Project,
+    val urgency: ProjectUrgency,
+    val daysUntilStart: Long,
+)
+
 data class CheckOutUiState(
-    val projects: List<Project> = emptyList(),
+    val projects: List<ProjectWithUrgency> = emptyList(),
     val selectedProject: Project? = null,
     val scannedItems: List<Equipment> = emptyList(),
     val sessionId: String? = null,
@@ -44,8 +55,24 @@ class CheckOutViewModel @Inject constructor(
 
     private fun loadProjects() {
         viewModelScope.launch {
-            projectRepository.listProjects().fold(
-                onSuccess = { _uiState.update { s -> s.copy(projects = it) } },
+            projectRepository.listActiveProjects().fold(
+                onSuccess = { projects ->
+                    val today = LocalDate.now()
+                    val sorted = projects.map { project ->
+                        val startDate = project.start_date?.let {
+                            runCatching { LocalDate.parse(it, DateTimeFormatter.ISO_DATE) }.getOrNull()
+                        }
+                        val days = startDate?.let { ChronoUnit.DAYS.between(today, it) } ?: Long.MAX_VALUE
+                        val urgency = when {
+                            days < 0 -> ProjectUrgency.OVERDUE
+                            days == 0L -> ProjectUrgency.TODAY
+                            days <= 2 -> ProjectUrgency.UPCOMING
+                            else -> ProjectUrgency.NORMAL
+                        }
+                        ProjectWithUrgency(project, urgency, days)
+                    }.sortedBy { it.daysUntilStart }
+                    _uiState.update { s -> s.copy(projects = sorted) }
+                },
                 onFailure = { _uiState.update { s -> s.copy(error = it.message) } },
             )
         }

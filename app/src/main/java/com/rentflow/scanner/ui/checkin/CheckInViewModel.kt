@@ -3,8 +3,10 @@ package com.rentflow.scanner.ui.checkin
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rentflow.scanner.data.hardware.HardwareScanner
+import com.rentflow.scanner.data.repository.ProjectRepository
 import com.rentflow.scanner.data.repository.ScannerRepository
 import com.rentflow.scanner.domain.model.Equipment
+import com.rentflow.scanner.domain.model.Project
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,6 +21,10 @@ data class CheckInItem(
 )
 
 data class CheckInUiState(
+    val returningToday: List<Project> = emptyList(),
+    val allCheckedOut: List<Project> = emptyList(),
+    val showAllJobs: Boolean = false,
+    val selectedProject: Project? = null,
     val scannedItems: List<CheckInItem> = emptyList(),
     val sessionId: String? = null,
     val isLoading: Boolean = false,
@@ -29,13 +35,14 @@ data class CheckInUiState(
 @HiltViewModel
 class CheckInViewModel @Inject constructor(
     private val scannerRepository: ScannerRepository,
+    private val projectRepository: ProjectRepository,
     private val hardwareScanner: HardwareScanner,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(CheckInUiState())
     val uiState: StateFlow<CheckInUiState> = _uiState
 
     init {
-        startSession()
+        loadJobs()
         viewModelScope.launch {
             hardwareScanner.barcodeScanEvents.collect { event ->
                 onBarcodeScanned(event.barcode)
@@ -43,11 +50,40 @@ class CheckInViewModel @Inject constructor(
         }
     }
 
-    private fun startSession() {
+    private fun loadJobs() {
         viewModelScope.launch {
-            scannerRepository.createSession("in").fold(
-                onSuccess = { session -> _uiState.update { it.copy(sessionId = session.id) } },
-                onFailure = { e -> _uiState.update { it.copy(error = e.message) } },
+            projectRepository.listReturningToday().fold(
+                onSuccess = { _uiState.update { s -> s.copy(returningToday = it) } },
+                onFailure = { _uiState.update { s -> s.copy(error = it.message) } },
+            )
+        }
+    }
+
+    fun toggleShowAll() {
+        val current = _uiState.value
+        if (!current.showAllJobs && current.allCheckedOut.isEmpty()) {
+            viewModelScope.launch {
+                _uiState.update { it.copy(isLoading = true) }
+                projectRepository.listCheckedOut().fold(
+                    onSuccess = { projects ->
+                        _uiState.update { it.copy(allCheckedOut = projects, showAllJobs = true, isLoading = false) }
+                    },
+                    onFailure = { e ->
+                        _uiState.update { it.copy(error = e.message, isLoading = false) }
+                    },
+                )
+            }
+        } else {
+            _uiState.update { it.copy(showAllJobs = !it.showAllJobs) }
+        }
+    }
+
+    fun selectProject(project: Project) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(selectedProject = project, isLoading = true) }
+            scannerRepository.createSession("in", project.id).fold(
+                onSuccess = { session -> _uiState.update { it.copy(sessionId = session.id, isLoading = false) } },
+                onFailure = { e -> _uiState.update { it.copy(isLoading = false, error = e.message) } },
             )
         }
     }

@@ -30,4 +30,7 @@ interface ScannerApi {
 
     @GET("api/v1/scanner/sessions/{id}/protocol")
     suspend fun sessionProtocol(@Path("id") id: String): Response<ApiResponse<List<ScanResult>>>
+
+    @POST("api/v1/scanner/adhoc-booking")
+    suspend fun adHocBooking(@Body request: AdHocBookingRequest): Response<ApiResponse<Equipment>>
 }

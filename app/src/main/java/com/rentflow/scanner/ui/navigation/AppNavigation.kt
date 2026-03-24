@@ -4,6 +4,7 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.rentflow.scanner.ui.adhoc.AdHocBookingScreen
 import com.rentflow.scanner.ui.checkin.CheckInScreen
 import com.rentflow.scanner.ui.checkout.CheckOutScreen
 import com.rentflow.scanner.ui.equipment.EquipmentDetailScreen
@@ -18,12 +19,15 @@ object Routes {
     const val HOME = "home"
     const val SCAN = "scan"
     const val CHECKOUT = "checkout"
+    const val CHECKOUT_PROJECT = "checkout/{projectId}"
     const val CHECKIN = "checkin"
     const val INVENTORY = "inventory"
     const val EQUIPMENT_DETAIL = "equipment/{barcode}"
     const val SETTINGS = "settings"
+    const val ADHOC_BOOKING = "adhoc_booking"
 
     fun equipmentDetail(barcode: String) = "equipment/$barcode"
+    fun checkoutProject(projectId: String) = "checkout/$projectId"
 }
 
 @Composable
@@ -45,6 +49,7 @@ fun AppNavigation(startDestination: String = Routes.LOGIN) {
                 onNavigateToCheckIn = { navController.navigate(Routes.CHECKIN) },
                 onNavigateToInventory = { navController.navigate(Routes.INVENTORY) },
                 onNavigateToSettings = { navController.navigate(Routes.SETTINGS) },
+                onNavigateToAdHoc = { navController.navigate(Routes.ADHOC_BOOKING) },
                 onLogout = {
                     navController.navigate(Routes.LOGIN) {
                         popUpTo(0) { inclusive = true }
@@ -58,9 +63,20 @@ fun AppNavigation(startDestination: String = Routes.LOGIN) {
                 onCheckOut = { navController.navigate(Routes.CHECKOUT) },
                 onCheckIn = { navController.navigate(Routes.CHECKIN) },
                 onEquipmentDetail = { barcode -> navController.navigate(Routes.equipmentDetail(barcode)) },
+                onNavigateToJob = { projectId -> navController.navigate(Routes.checkoutProject(projectId)) },
             )
         }
         composable(Routes.CHECKOUT) {
+            CheckOutScreen(
+                onBack = { navController.popBackStack() },
+                onCompleted = {
+                    navController.navigate(Routes.HOME) {
+                        popUpTo(Routes.HOME) { inclusive = true }
+                    }
+                },
+            )
+        }
+        composable(Routes.CHECKOUT_PROJECT) {
             CheckOutScreen(
                 onBack = { navController.popBackStack() },
                 onCompleted = {
@@ -95,6 +111,9 @@ fun AppNavigation(startDestination: String = Routes.LOGIN) {
         }
         composable(Routes.SETTINGS) {
             SettingsScreen(onBack = { navController.popBackStack() })
+        }
+        composable(Routes.ADHOC_BOOKING) {
+            AdHocBookingScreen(onBack = { navController.popBackStack() })
         }
     }
 }
