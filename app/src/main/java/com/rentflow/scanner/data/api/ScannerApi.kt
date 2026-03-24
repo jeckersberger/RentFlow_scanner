@@ -33,4 +33,13 @@ interface ScannerApi {
 
     @POST("api/v1/scanner/adhoc-booking")
     suspend fun adHocBooking(@Body request: AdHocBookingRequest): Response<ApiResponse<Equipment>>
+
+    @POST("api/v1/scanner/devices/register")
+    suspend fun registerDevice(@Body request: DeviceRegistration): Response<ApiResponse<Unit>>
+
+    @GET("api/v1/scanner/devices/ring")
+    suspend fun checkRingCommand(): Response<ApiResponse<RingCommandResponse>>
+
+    @POST("api/v1/scanner/devices/ring-ack")
+    suspend fun acknowledgeRing(): Response<ApiResponse<Unit>>
 }

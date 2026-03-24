@@ -47,3 +47,14 @@ data class AdHocBookingRequest(
     val barcode: String,
     val notes: String? = null,
 )
+
+data class DeviceRegistration(
+    val device_id: String,
+    val device_name: String,
+    val device_type: String = "cf-h906",
+    val fcm_token: String? = null,
+)
+
+data class RingCommandResponse(
+    val ring: Boolean = false,
+)
