@@ -17,3 +17,5 @@ app/build
 local.properties
 sdk-extracted/
 *.png
+.idea/
+app/libs/platform_sdk_*.jar
