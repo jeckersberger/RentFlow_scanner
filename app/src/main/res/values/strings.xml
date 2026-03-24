@@ -5,6 +5,7 @@
     <string name="login_password">Passwort</string>
     <string name="login_button">Anmelden</string>
     <string name="login_qr">QR-Code Login</string>
+    <string name="login_qr_hint">QR-Code im Browser scannen um sich anzumelden</string>
     <string name="home_title">Scanner</string>
     <string name="nav_home">Start</string>
     <string name="nav_scan">Scannen</string>

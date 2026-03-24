@@ -21,6 +21,10 @@ data class RefreshRequest(
     val refresh_token: String,
 )
 
+data class QrLoginRequest(
+    val qr_token: String,
+)
+
 data class ScanRequest(
     val barcode: String,
     val scan_type: String,

@@ -5,6 +5,7 @@
     <string name="login_password">Password</string>
     <string name="login_button">Sign In</string>
     <string name="login_qr">QR Code Login</string>
+    <string name="login_qr_hint">Scan the QR code shown in your browser to sign in</string>
     <string name="home_title">Scanner</string>
     <string name="nav_home">Home</string>
     <string name="nav_scan">Scan</string>

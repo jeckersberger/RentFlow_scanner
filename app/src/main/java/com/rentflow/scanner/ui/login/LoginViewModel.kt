@@ -16,6 +16,7 @@ data class LoginUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val loginSuccess: Boolean = false,
+    val showQrScanner: Boolean = false,
 )
 
 @HiltViewModel
@@ -47,6 +48,28 @@ class LoginViewModel @Inject constructor(
                     it.copy(isLoading = false, loginSuccess = true)
                 } else {
                     it.copy(isLoading = false, error = result.exceptionOrNull()?.message ?: "Login fehlgeschlagen")
+                }
+            }
+        }
+    }
+
+    fun openQrScanner() {
+        _uiState.update { it.copy(showQrScanner = true, error = null) }
+    }
+
+    fun closeQrScanner() {
+        _uiState.update { it.copy(showQrScanner = false) }
+    }
+
+    fun onQrCodeScanned(qrToken: String) {
+        _uiState.update { it.copy(showQrScanner = false, isLoading = true, error = null) }
+        viewModelScope.launch {
+            val result = authRepository.qrLogin(qrToken)
+            _uiState.update {
+                if (result.isSuccess) {
+                    it.copy(isLoading = false, loginSuccess = true)
+                } else {
+                    it.copy(isLoading = false, error = result.exceptionOrNull()?.message ?: "QR-Login fehlgeschlagen")
                 }
             }
         }
