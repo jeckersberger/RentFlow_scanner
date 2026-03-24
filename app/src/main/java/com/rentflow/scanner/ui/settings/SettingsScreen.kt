@@ -9,7 +9,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.rentflow.scanner.BuildConfig
 import com.rentflow.scanner.R
+import com.rentflow.scanner.ui.components.UpdateBanner
 import com.rentflow.scanner.ui.theme.Success
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -65,6 +67,39 @@ fun SettingsScreen(
             if (state.saved) {
                 Spacer(Modifier.height(16.dp))
                 Text("Gespeichert. App-Neustart erforderlich.", color = Success)
+            }
+
+            Spacer(Modifier.height(32.dp))
+            HorizontalDivider()
+            Spacer(Modifier.height(16.dp))
+
+            // Version & Update
+            Text("App-Version", style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "v${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE})",
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+            )
+            Spacer(Modifier.height(12.dp))
+
+            state.updateInfo?.let { info ->
+                UpdateBanner(
+                    updateInfo = info,
+                    onUpdate = { viewModel.downloadUpdate() },
+                )
+            }
+
+            OutlinedButton(
+                onClick = { viewModel.checkForUpdate() },
+                modifier = Modifier.fillMaxWidth(),
+                enabled = !state.isCheckingUpdate,
+            ) {
+                if (state.isCheckingUpdate) {
+                    CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
+                    Spacer(Modifier.width(8.dp))
+                }
+                Text(if (state.isCheckingUpdate) "Prüfe..." else "Nach Updates suchen")
             }
         }
     }

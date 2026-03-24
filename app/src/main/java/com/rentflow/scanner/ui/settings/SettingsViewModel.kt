@@ -3,6 +3,8 @@ package com.rentflow.scanner.ui.settings
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rentflow.scanner.data.preferences.SettingsDataStore
+import com.rentflow.scanner.data.service.AppUpdateService
+import com.rentflow.scanner.data.service.UpdateInfo
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -14,11 +16,14 @@ data class SettingsUiState(
     val serverUrl: String = "",
     val language: String = "de",
     val saved: Boolean = false,
+    val updateInfo: UpdateInfo? = null,
+    val isCheckingUpdate: Boolean = false,
 )
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val settingsDataStore: SettingsDataStore,
+    private val updateService: AppUpdateService,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(SettingsUiState())
     val uiState: StateFlow<SettingsUiState> = _uiState
@@ -32,6 +37,11 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             settingsDataStore.language.collect { lang ->
                 _uiState.update { it.copy(language = lang) }
+            }
+        }
+        viewModelScope.launch {
+            updateService.updateAvailable.collect { info ->
+                _uiState.update { it.copy(updateInfo = info) }
             }
         }
     }
@@ -50,5 +60,18 @@ class SettingsViewModel @Inject constructor(
             settingsDataStore.setLanguage(_uiState.value.language)
             _uiState.update { it.copy(saved = true) }
         }
+    }
+
+    fun checkForUpdate() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isCheckingUpdate = true) }
+            updateService.checkForUpdate()
+            _uiState.update { it.copy(isCheckingUpdate = false) }
+        }
+    }
+
+    fun downloadUpdate() {
+        val info = _uiState.value.updateInfo ?: return
+        updateService.downloadAndInstall(info)
     }
 }

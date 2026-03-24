@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.rentflow.scanner.R
 import com.rentflow.scanner.ui.components.PendingQueueBadge
+import com.rentflow.scanner.ui.components.UpdateBanner
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
@@ -54,6 +55,14 @@ fun HomeScreen(
                 .padding(16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
+            state.updateInfo?.let { info ->
+                UpdateBanner(
+                    updateInfo = info,
+                    onUpdate = { viewModel.downloadUpdate() },
+                    modifier = Modifier.padding(bottom = 8.dp),
+                )
+            }
+
             if (state.userName.isNotBlank()) {
                 Text("Hallo, ${state.userName}", style = MaterialTheme.typography.headlineMedium)
             }
