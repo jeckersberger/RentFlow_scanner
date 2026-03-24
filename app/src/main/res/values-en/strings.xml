@@ -58,11 +58,7 @@
     <string name="cancel">Cancel</string>
     <string name="confirm">Confirm</string>
     <string name="ok">OK</string>
-    <string name="adhoc_title">Ad-hoc Booking</string>
-    <string name="adhoc_description">Book equipment directly to warehouse</string>
-    <string name="adhoc_confirm_title">Confirm ad-hoc booking</string>
-    <string name="adhoc_confirm_message">Are you sure you want to book \"%1$s\" to the warehouse? This action cannot be undone.</string>
-    <string name="adhoc_slide_to_confirm">Slide to confirm</string>
-    <string name="adhoc_success">%1$s has been booked to warehouse</string>
-    <string name="adhoc_scan_prompt">Scan equipment to book it to the warehouse</string>
+    <string name="adhoc_confirm_title">Equipment not planned</string>
+    <string name="adhoc_not_on_job">\"%1$s\" is not planned for job \"%2$s\". Add it anyway?</string>
+    <string name="adhoc_add_anyway">Add anyway</string>
 </resources>

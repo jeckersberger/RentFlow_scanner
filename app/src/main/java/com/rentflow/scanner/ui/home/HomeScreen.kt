@@ -15,8 +15,6 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.rentflow.scanner.R
 import com.rentflow.scanner.ui.components.PendingQueueBadge
-import com.rentflow.scanner.ui.theme.Warning
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
@@ -25,7 +23,6 @@ fun HomeScreen(
     onNavigateToCheckIn: () -> Unit,
     onNavigateToInventory: () -> Unit,
     onNavigateToSettings: () -> Unit,
-    onNavigateToAdHoc: () -> Unit = {},
     onLogout: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
@@ -65,7 +62,6 @@ fun HomeScreen(
             WorkflowCard(Icons.Default.Output, stringResource(R.string.nav_checkout), onClick = onNavigateToCheckOut)
             WorkflowCard(Icons.Default.Input, stringResource(R.string.nav_checkin), onClick = onNavigateToCheckIn)
             WorkflowCard(Icons.Default.Inventory, stringResource(R.string.nav_inventory), onClick = onNavigateToInventory)
-            WorkflowCard(Icons.Default.Warehouse, stringResource(R.string.adhoc_title), onClick = onNavigateToAdHoc, iconTint = Warning)
         }
     }
 }

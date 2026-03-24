@@ -36,6 +36,38 @@ fun CheckOutScreen(
         if (state.completed) onCompleted()
     }
 
+    // Ad-hoc confirmation dialog
+    state.adHocEquipment?.let { equipment ->
+        AlertDialog(
+            onDismissRequest = viewModel::dismissAdHoc,
+            icon = {
+                Icon(
+                    Icons.Default.Warning,
+                    contentDescription = null,
+                    tint = Warning,
+                    modifier = Modifier.size(32.dp),
+                )
+            },
+            title = { Text(stringResource(R.string.adhoc_confirm_title)) },
+            text = {
+                Text(stringResource(R.string.adhoc_not_on_job, equipment.name, state.selectedProject?.name ?: ""))
+            },
+            confirmButton = {
+                Button(
+                    onClick = viewModel::confirmAdHoc,
+                    colors = ButtonDefaults.buttonColors(containerColor = Warning),
+                ) {
+                    Text(stringResource(R.string.adhoc_add_anyway))
+                }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = viewModel::dismissAdHoc) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -73,7 +105,8 @@ fun CheckOutScreen(
                 }
                 LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     items(state.scannedItems) { item ->
-                        EquipmentCard(item)
+                        val isAdHoc = state.expectedEquipmentIds.isNotEmpty() && item.id !in state.expectedEquipmentIds
+                        EquipmentCard(item, adHoc = isAdHoc)
                     }
                 }
                 if (state.scannedItems.isNotEmpty()) {

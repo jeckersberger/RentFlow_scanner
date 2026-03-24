@@ -28,11 +28,13 @@ data class ProjectWithUrgency(
 data class CheckOutUiState(
     val projects: List<ProjectWithUrgency> = emptyList(),
     val selectedProject: Project? = null,
+    val expectedEquipmentIds: Set<String> = emptySet(),
     val scannedItems: List<Equipment> = emptyList(),
     val sessionId: String? = null,
     val isLoading: Boolean = false,
     val error: String? = null,
     val completed: Boolean = false,
+    val adHocEquipment: Equipment? = null,
 )
 
 @HiltViewModel
@@ -81,6 +83,14 @@ class CheckOutViewModel @Inject constructor(
     fun selectProject(project: Project) {
         viewModelScope.launch {
             _uiState.update { it.copy(selectedProject = project, isLoading = true) }
+            // Load expected equipment for this project
+            projectRepository.listProjectEquipment(project.id).fold(
+                onSuccess = { equipment ->
+                    val ids = equipment.map { it.id }.toSet()
+                    _uiState.update { it.copy(expectedEquipmentIds = ids) }
+                },
+                onFailure = { /* No equipment list available — allow all scans */ },
+            )
             scannerRepository.createSession("out", project.id).fold(
                 onSuccess = { session -> _uiState.update { it.copy(sessionId = session.id, isLoading = false) } },
                 onFailure = { e -> _uiState.update { it.copy(isLoading = false, error = e.message) } },
@@ -96,11 +106,35 @@ class CheckOutViewModel @Inject constructor(
         viewModelScope.launch {
             scannerRepository.resolveBarcode(barcode).fold(
                 onSuccess = { equipment ->
-                    scannerRepository.sessionScan(state.sessionId, barcode, "out")
-                    _uiState.update { it.copy(scannedItems = it.scannedItems + equipment) }
+                    val isExpected = state.expectedEquipmentIds.isEmpty() || equipment.id in state.expectedEquipmentIds
+                    if (isExpected) {
+                        addEquipment(equipment)
+                    } else {
+                        // Not on the planned list — ask for confirmation
+                        _uiState.update { it.copy(adHocEquipment = equipment) }
+                    }
                 },
                 onFailure = { e -> _uiState.update { it.copy(error = e.message) } },
             )
+        }
+    }
+
+    fun confirmAdHoc() {
+        val equipment = _uiState.value.adHocEquipment ?: return
+        _uiState.update { it.copy(adHocEquipment = null) }
+        addEquipment(equipment)
+    }
+
+    fun dismissAdHoc() {
+        _uiState.update { it.copy(adHocEquipment = null) }
+    }
+
+    private fun addEquipment(equipment: Equipment) {
+        val state = _uiState.value
+        if (state.sessionId == null) return
+        viewModelScope.launch {
+            scannerRepository.sessionScan(state.sessionId, equipment.barcode, "out")
+            _uiState.update { it.copy(scannedItems = it.scannedItems + equipment) }
         }
     }
 

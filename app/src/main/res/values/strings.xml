@@ -58,11 +58,7 @@
     <string name="cancel">Abbrechen</string>
     <string name="confirm">Bestätigen</string>
     <string name="ok">OK</string>
-    <string name="adhoc_title">Spontan-Buchung</string>
-    <string name="adhoc_description">Equipment direkt ins Lager buchen</string>
-    <string name="adhoc_confirm_title">Spontan-Buchung bestätigen</string>
-    <string name="adhoc_confirm_message">Soll \"%1$s\" wirklich ins Lager gebucht werden? Diese Aktion kann nicht rückgängig gemacht werden.</string>
-    <string name="adhoc_slide_to_confirm">Zum Bestätigen wischen</string>
-    <string name="adhoc_success">%1$s wurde ins Lager gebucht</string>
-    <string name="adhoc_scan_prompt">Equipment scannen um es ins Lager zu buchen</string>
+    <string name="adhoc_confirm_title">Gerät nicht eingeplant</string>
+    <string name="adhoc_not_on_job">\"%1$s\" ist nicht für den Job \"%2$s\" vorgesehen. Trotzdem hinzufügen?</string>
+    <string name="adhoc_add_anyway">Trotzdem hinzufügen</string>
 </resources>
