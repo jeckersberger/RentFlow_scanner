@@ -42,6 +42,10 @@ android {
 }
 
 dependencies {
+    // CF-H906 Hardware SDK (barcode scanner + UHF RFID)
+    // rfiddrive AAR already bundles platform_sdk, so only include the AAR
+    implementation(files("libs/rfiddrive-release.aar"))
+
     // Core
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
