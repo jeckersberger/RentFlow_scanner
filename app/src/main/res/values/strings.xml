@@ -24,6 +24,7 @@
     <string name="checkout_starts_today">Startet heute</string>
     <string name="checkout_days_left">Noch %1$d Tage</string>
     <string name="checkout_items">%1$d Geräte</string>
+    <string name="checkout_active_only">Nur anstehende</string>
     <string name="checkin_title">Check-In</string>
     <string name="checkin_condition">Zustand bewerten</string>
     <string name="checkin_notes">Anmerkungen</string>

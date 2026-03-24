@@ -7,6 +7,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -85,9 +87,28 @@ fun CheckOutScreen(
         ) {
             if (state.selectedProject == null) {
                 Text(stringResource(R.string.checkout_select_project), style = MaterialTheme.typography.titleLarge)
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(12.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                ) {
+                    FilledTonalButton(onClick = viewModel::toggleShowAll) {
+                        Icon(
+                            if (state.showAllJobs) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            if (state.showAllJobs) stringResource(R.string.checkout_active_only)
+                            else stringResource(R.string.checkin_all_jobs)
+                        )
+                    }
+                }
+                Spacer(Modifier.height(12.dp))
+                val jobs = if (state.showAllJobs) state.allProjects else state.projects
                 LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(state.projects) { item ->
+                    items(jobs) { item ->
                         ProjectCard(
                             item = item,
                             onClick = { viewModel.selectProject(item.project) },

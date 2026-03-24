@@ -24,6 +24,7 @@
     <string name="checkout_starts_today">Starts today</string>
     <string name="checkout_days_left">%1$d days left</string>
     <string name="checkout_items">%1$d items</string>
+    <string name="checkout_active_only">Active only</string>
     <string name="checkin_title">Check-In</string>
     <string name="checkin_condition">Rate condition</string>
     <string name="checkin_notes">Notes</string>

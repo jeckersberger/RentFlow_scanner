@@ -27,6 +27,8 @@ data class ProjectWithUrgency(
 
 data class CheckOutUiState(
     val projects: List<ProjectWithUrgency> = emptyList(),
+    val allProjects: List<ProjectWithUrgency> = emptyList(),
+    val showAllJobs: Boolean = false,
     val selectedProject: Project? = null,
     val expectedEquipmentIds: Set<String> = emptySet(),
     val scannedItems: List<Equipment> = emptyList(),
@@ -77,6 +79,37 @@ class CheckOutViewModel @Inject constructor(
                 },
                 onFailure = { _uiState.update { s -> s.copy(error = it.message) } },
             )
+        }
+    }
+
+    fun toggleShowAll() {
+        val current = _uiState.value
+        if (!current.showAllJobs && current.allProjects.isEmpty()) {
+            viewModelScope.launch {
+                _uiState.update { it.copy(isLoading = true) }
+                projectRepository.listProjects().fold(
+                    onSuccess = { projects ->
+                        val today = LocalDate.now()
+                        val sorted = projects.map { project ->
+                            val startDate = project.start_date?.let {
+                                runCatching { LocalDate.parse(it, DateTimeFormatter.ISO_DATE) }.getOrNull()
+                            }
+                            val days = startDate?.let { ChronoUnit.DAYS.between(today, it) } ?: Long.MAX_VALUE
+                            val urgency = when {
+                                days < 0 -> ProjectUrgency.OVERDUE
+                                days == 0L -> ProjectUrgency.TODAY
+                                days <= 2 -> ProjectUrgency.UPCOMING
+                                else -> ProjectUrgency.NORMAL
+                            }
+                            ProjectWithUrgency(project, urgency, days)
+                        }.sortedBy { it.daysUntilStart }
+                        _uiState.update { it.copy(allProjects = sorted, showAllJobs = true, isLoading = false) }
+                    },
+                    onFailure = { e -> _uiState.update { it.copy(error = e.message, isLoading = false) } },
+                )
+            }
+        } else {
+            _uiState.update { it.copy(showAllJobs = !it.showAllJobs) }
         }
     }
 
