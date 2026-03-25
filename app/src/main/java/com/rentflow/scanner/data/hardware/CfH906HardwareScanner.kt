@@ -64,7 +64,18 @@ class CfH906HardwareScanner(
         }
 
         override fun StopReadCallBack() {
-            Log.d(TAG, "RFID continuous read stopped")
+            // Bulk read cycle ended — restart if still scanning
+            if (isRfidReading) {
+                try {
+                    rfidReader.StartRead()
+                    Log.d(TAG, "RFID bulk read restarted (continuous)")
+                } catch (e: Exception) {
+                    Log.w(TAG, "Could not restart RFID read: ${e.message}")
+                    isRfidReading = false
+                }
+            } else {
+                Log.d(TAG, "RFID continuous read stopped")
+            }
         }
     }
 

@@ -104,7 +104,7 @@ class MainActivity : AppCompatActivity() {
                 settingsDataStore.scanMode.first()
             }
             if (mode == SettingsDataStore.SCAN_MODE_RFID) {
-                // Cancel any pending stop — trigger is still held
+                // Every KeyDown resets the stop timer — keeps scanning alive
                 rfidStopHandler.removeCallbacks(rfidStopRunnable)
                 if (!isRfidScanning) {
                     hardwareScanner.startRfidBulkRead()
@@ -123,9 +123,9 @@ class MainActivity : AppCompatActivity() {
                 settingsDataStore.scanMode.first()
             }
             if (mode == SettingsDataStore.SCAN_MODE_RFID) {
-                // Delay stop by 300ms to debounce rapid key events
+                // Stop only after 2s of no new KeyDown — trigger truly released
                 rfidStopHandler.removeCallbacks(rfidStopRunnable)
-                rfidStopHandler.postDelayed(rfidStopRunnable, 1000)
+                rfidStopHandler.postDelayed(rfidStopRunnable, 2000)
                 return true
             }
             return super.onKeyUp(keyCode, event)
