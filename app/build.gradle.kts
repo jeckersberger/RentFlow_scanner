@@ -14,8 +14,8 @@ android {
         applicationId = "com.rentflow.scanner"
         minSdk = 28
         targetSdk = 35
-        versionCode = 20303
-        versionName = "2.3.3"
+        versionCode = 20304
+        versionName = "2.3.4"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
