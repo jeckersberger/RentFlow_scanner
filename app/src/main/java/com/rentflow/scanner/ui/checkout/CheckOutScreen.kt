@@ -7,9 +7,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.filled.Warning
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -22,6 +20,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.rentflow.scanner.R
 import com.rentflow.scanner.ui.components.EquipmentCard
+import com.rentflow.scanner.ui.theme.Cyan
 import com.rentflow.scanner.ui.theme.Error
 import com.rentflow.scanner.ui.theme.Warning
 
@@ -79,6 +78,18 @@ fun CheckOutScreen(
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
                     }
                 },
+                actions = {
+                    if (state.selectedProject != null) {
+                        // RFID bulk toggle
+                        IconButton(onClick = viewModel::toggleRfidBulk) {
+                            Icon(
+                                Icons.Default.Sensors,
+                                contentDescription = "RFID Bulk",
+                                tint = if (state.isRfidBulkActive) Cyan else MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
+                },
             )
         },
     ) { padding ->
@@ -116,18 +127,58 @@ fun CheckOutScreen(
                     }
                 }
             } else {
+                // Scanning phase
                 Text("${stringResource(R.string.checkout_title)}: ${state.selectedProject!!.name}", style = MaterialTheme.typography.titleLarge)
+                Spacer(Modifier.height(4.dp))
+
+                // RFID bulk indicator
+                if (state.isRfidBulkActive) {
+                    Card(
+                        colors = CardDefaults.cardColors(containerColor = Cyan.copy(alpha = 0.15f)),
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Icon(Icons.Default.Sensors, contentDescription = null, tint = Cyan)
+                            Spacer(Modifier.width(8.dp))
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text("RFID Bulk-Scan aktiv", fontWeight = FontWeight.Bold, color = Cyan)
+                                Text(
+                                    "Tags werden automatisch erfasst",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                            if (state.rfidResolving.isNotEmpty()) {
+                                CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(8.dp))
+                }
+
+                Text(
+                    "${state.scannedItems.size} Geräte gescannt",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 Spacer(Modifier.height(8.dp))
-                Text(stringResource(R.string.checkout_scan_items), style = MaterialTheme.typography.bodyMedium)
-                Spacer(Modifier.height(16.dp))
+
                 state.error?.let {
                     Text(it, color = MaterialTheme.colorScheme.error)
                     Spacer(Modifier.height(8.dp))
                 }
+
                 LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(state.scannedItems) { item ->
+                    items(state.scannedItems, key = { it.id }) { item ->
                         val isAdHoc = state.expectedEquipmentIds.isNotEmpty() && item.id !in state.expectedEquipmentIds
-                        EquipmentCard(item, adHoc = isAdHoc)
+                        EquipmentCard(
+                            item,
+                            adHoc = isAdHoc,
+                            onRemove = { viewModel.removeItem(item) },
+                        )
                     }
                 }
                 if (state.scannedItems.isNotEmpty()) {
@@ -137,7 +188,11 @@ fun CheckOutScreen(
                         enabled = !state.isLoading,
                         modifier = Modifier.fillMaxWidth().height(56.dp),
                     ) {
-                        Text("${stringResource(R.string.checkout_confirm)} (${state.scannedItems.size})")
+                        if (state.isLoading) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
+                        } else {
+                            Text("${stringResource(R.string.checkout_confirm)} (${state.scannedItems.size})")
+                        }
                     }
                 }
             }

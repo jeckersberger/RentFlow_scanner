@@ -3,6 +3,8 @@ package com.rentflow.scanner.ui.settings
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.QrCodeScanner
+import androidx.compose.material.icons.filled.Sensors
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
@@ -11,6 +13,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.rentflow.scanner.BuildConfig
 import com.rentflow.scanner.R
+import com.rentflow.scanner.data.preferences.SettingsDataStore
 import com.rentflow.scanner.ui.components.UpdateBanner
 import com.rentflow.scanner.ui.theme.Success
 
@@ -55,6 +58,27 @@ fun SettingsScreen(
                     selected = state.language == "en",
                     onClick = { viewModel.onLanguageChange("en") },
                     label = { Text("English") },
+                )
+            }
+            Spacer(Modifier.height(24.dp))
+            Text("Scan-Modus", style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                FilterChip(
+                    selected = state.scanMode == SettingsDataStore.SCAN_MODE_BARCODE,
+                    onClick = { viewModel.onScanModeChange(SettingsDataStore.SCAN_MODE_BARCODE) },
+                    label = { Text("Barcode") },
+                    leadingIcon = {
+                        Icon(Icons.Default.QrCodeScanner, contentDescription = null, modifier = Modifier.size(18.dp))
+                    },
+                )
+                FilterChip(
+                    selected = state.scanMode == SettingsDataStore.SCAN_MODE_RFID,
+                    onClick = { viewModel.onScanModeChange(SettingsDataStore.SCAN_MODE_RFID) },
+                    label = { Text("RFID") },
+                    leadingIcon = {
+                        Icon(Icons.Default.Sensors, contentDescription = null, modifier = Modifier.size(18.dp))
+                    },
                 )
             }
             Spacer(Modifier.height(24.dp))

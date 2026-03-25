@@ -1,5 +1,6 @@
 package com.rentflow.scanner.ui.home
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Logout
@@ -16,6 +17,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.rentflow.scanner.R
 import com.rentflow.scanner.ui.components.PendingQueueBadge
 import com.rentflow.scanner.ui.components.UpdateBanner
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
@@ -24,6 +26,7 @@ fun HomeScreen(
     onNavigateToCheckIn: () -> Unit,
     onNavigateToInventory: () -> Unit,
     onNavigateToSettings: () -> Unit,
+    onNavigateToQueue: () -> Unit,
     onLogout: () -> Unit,
     viewModel: HomeViewModel = hiltViewModel(),
 ) {
@@ -34,7 +37,9 @@ fun HomeScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.home_title)) },
                 actions = {
-                    PendingQueueBadge(state.pendingScanCount)
+                    Box(modifier = Modifier.clickable { onNavigateToQueue() }) {
+                        PendingQueueBadge(state.pendingScanCount)
+                    }
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.nav_settings))
                     }

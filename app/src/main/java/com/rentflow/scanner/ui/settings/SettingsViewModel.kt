@@ -15,6 +15,7 @@ import javax.inject.Inject
 data class SettingsUiState(
     val serverUrl: String = "",
     val language: String = "de",
+    val scanMode: String = "barcode",
     val saved: Boolean = false,
     val updateInfo: UpdateInfo? = null,
     val isCheckingUpdate: Boolean = false,
@@ -40,6 +41,11 @@ class SettingsViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
+            settingsDataStore.scanMode.collect { mode ->
+                _uiState.update { it.copy(scanMode = mode) }
+            }
+        }
+        viewModelScope.launch {
             updateService.updateAvailable.collect { info ->
                 _uiState.update { it.copy(updateInfo = info) }
             }
@@ -54,10 +60,15 @@ class SettingsViewModel @Inject constructor(
         _uiState.update { it.copy(language = lang, saved = false) }
     }
 
+    fun onScanModeChange(mode: String) {
+        _uiState.update { it.copy(scanMode = mode, saved = false) }
+    }
+
     fun save() {
         viewModelScope.launch {
             settingsDataStore.setServerUrl(_uiState.value.serverUrl)
             settingsDataStore.setLanguage(_uiState.value.language)
+            settingsDataStore.setScanMode(_uiState.value.scanMode)
             _uiState.update { it.copy(saved = true) }
         }
     }

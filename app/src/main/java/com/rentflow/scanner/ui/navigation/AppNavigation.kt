@@ -10,6 +10,7 @@ import com.rentflow.scanner.ui.equipment.EquipmentDetailScreen
 import com.rentflow.scanner.ui.home.HomeScreen
 import com.rentflow.scanner.ui.inventory.InventoryScreen
 import com.rentflow.scanner.ui.login.LoginScreen
+import com.rentflow.scanner.ui.queue.PendingQueueScreen
 import com.rentflow.scanner.ui.scan.ScanScreen
 import com.rentflow.scanner.ui.settings.SettingsScreen
 
@@ -23,6 +24,7 @@ object Routes {
     const val INVENTORY = "inventory"
     const val EQUIPMENT_DETAIL = "equipment/{barcode}"
     const val SETTINGS = "settings"
+    const val QUEUE = "queue"
 
     fun equipmentDetail(barcode: String) = "equipment/$barcode"
     fun checkoutProject(projectId: String) = "checkout/$projectId"
@@ -47,6 +49,7 @@ fun AppNavigation(startDestination: String = Routes.LOGIN) {
                 onNavigateToCheckIn = { navController.navigate(Routes.CHECKIN) },
                 onNavigateToInventory = { navController.navigate(Routes.INVENTORY) },
                 onNavigateToSettings = { navController.navigate(Routes.SETTINGS) },
+                onNavigateToQueue = { navController.navigate(Routes.QUEUE) },
                 onLogout = {
                     navController.navigate(Routes.LOGIN) {
                         popUpTo(0) { inclusive = true }
@@ -108,6 +111,9 @@ fun AppNavigation(startDestination: String = Routes.LOGIN) {
         }
         composable(Routes.SETTINGS) {
             SettingsScreen(onBack = { navController.popBackStack() })
+        }
+        composable(Routes.QUEUE) {
+            PendingQueueScreen(onBack = { navController.popBackStack() })
         }
     }
 }

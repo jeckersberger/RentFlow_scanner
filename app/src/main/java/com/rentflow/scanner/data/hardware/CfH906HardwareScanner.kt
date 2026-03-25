@@ -63,7 +63,7 @@ class CfH906HardwareScanner(
 
     // ==================== Barcode Scanner ====================
 
-    override fun startBarcodeScan() {
+    override fun initBarcodeScan() {
         try {
             if (scanManager == null) {
                 scanManager = ScanManager()
@@ -81,14 +81,22 @@ class CfH906HardwareScanner(
                     )
                     // Register receiver
                     context.registerReceiver(broadcastReceiver, broadcastReceiver.getIntentFilter())
-                    Log.d(TAG, "Barcode scanner opened successfully")
+                    Log.d(TAG, "Barcode scanner initialized (waiting for hardware trigger)")
                 } else {
                     Log.e(TAG, "Failed to open barcode scanner")
                 }
             }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error initializing barcode scanner", e)
+        }
+    }
+
+    override fun startBarcodeScan() {
+        initBarcodeScan()
+        try {
             scanManager?.startDecode()
         } catch (e: Exception) {
-            Log.e(TAG, "Error starting barcode scan", e)
+            Log.e(TAG, "Error starting barcode decode", e)
         }
     }
 
@@ -97,6 +105,20 @@ class CfH906HardwareScanner(
             scanManager?.stopDecode()
         } catch (e: Exception) {
             Log.e(TAG, "Error stopping barcode scan", e)
+        }
+    }
+
+    override fun closeBarcodeScan() {
+        try {
+            if (isBarcodeOpen) {
+                scanManager?.stopDecode()
+                scanManager?.closeScanner()
+                try { context.unregisterReceiver(broadcastReceiver) } catch (_: Exception) {}
+                isBarcodeOpen = false
+                Log.d(TAG, "Barcode scanner closed")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error closing barcode scanner", e)
         }
     }
 
@@ -161,6 +183,20 @@ class CfH906HardwareScanner(
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error stopping RFID", e)
+        }
+    }
+
+    override fun closeRfid() {
+        try {
+            if (isRfidConnected) {
+                rfidReader.StopRead()
+                rfidReader.DisConnect()
+                isRfidConnected = false
+            }
+            OtgUtils.setPOGOPINEnable(false)
+            Log.d(TAG, "RFID closed")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error closing RFID", e)
         }
     }
 

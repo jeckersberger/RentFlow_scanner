@@ -42,4 +42,7 @@ interface ScannerApi {
 
     @POST("api/v1/scanner/devices/ring-ack")
     suspend fun acknowledgeRing(): Response<ApiResponse<Unit>>
+
+    @PUT("api/v1/scan/equipment/{id}/location")
+    suspend fun updateLocation(@Path("id") id: String, @Body body: Map<String, String>): Response<ApiResponse<Unit>>
 }

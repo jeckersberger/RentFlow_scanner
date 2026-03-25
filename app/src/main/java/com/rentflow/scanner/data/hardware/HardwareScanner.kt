@@ -10,11 +10,14 @@ interface HardwareScanner {
     val barcodeScanEvents: Flow<BarcodeScanEvent>
     val rfidReadEvents: Flow<RfidReadEvent>
 
+    fun initBarcodeScan()
     fun startBarcodeScan()
     fun stopBarcodeScan()
+    fun closeBarcodeScan()
     fun startRfidRead()
     fun startRfidBulkRead()
     fun stopRfid()
+    fun closeRfid()
     suspend fun writeRfidTag(epc: String): RfidWriteResult
     fun isRfidAvailable(): Boolean
     fun destroy()

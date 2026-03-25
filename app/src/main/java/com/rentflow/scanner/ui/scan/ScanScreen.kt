@@ -17,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.rentflow.scanner.R
+import com.rentflow.scanner.data.preferences.SettingsDataStore
 import com.rentflow.scanner.domain.model.EquipmentStatus
 import com.rentflow.scanner.ui.components.EquipmentCard
 import com.rentflow.scanner.ui.theme.Cyan
@@ -32,6 +33,7 @@ fun ScanScreen(
     viewModel: ScanViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
+    val isRfidMode = state.scanMode == SettingsDataStore.SCAN_MODE_RFID
 
     Scaffold(
         topBar = {
@@ -41,6 +43,15 @@ fun ScanScreen(
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null)
                     }
+                },
+                actions = {
+                    // Show current scan mode indicator
+                    Icon(
+                        if (isRfidMode) Icons.Default.Sensors else Icons.Default.QrCodeScanner,
+                        contentDescription = null,
+                        tint = Cyan,
+                        modifier = Modifier.padding(end = 16.dp),
+                    )
                 },
             )
         },
@@ -55,10 +66,10 @@ fun ScanScreen(
             if (state.isLoading) {
                 CircularProgressIndicator(modifier = Modifier.padding(32.dp))
             } else if (state.equipment != null) {
+                // Barcode scan result
                 val eq = state.equipment!!
                 EquipmentCard(eq, onClick = { onEquipmentDetail(eq.barcode) })
 
-                // Show job info if equipment is checked out
                 if (eq.status == EquipmentStatus.CHECKED_OUT && eq.projectName != null) {
                     Spacer(Modifier.height(12.dp))
                     Card(
@@ -107,45 +118,33 @@ fun ScanScreen(
                     Text(stringResource(R.string.scan_ready))
                 }
             } else {
-                // Scan ready state
-                Spacer(Modifier.height(32.dp))
+                // Waiting for scan
+                Spacer(Modifier.height(64.dp))
                 Icon(
-                    Icons.Default.QrCodeScanner,
+                    if (isRfidMode) Icons.Default.Sensors else Icons.Default.QrCodeScanner,
                     contentDescription = null,
                     modifier = Modifier.size(96.dp),
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = Cyan,
                 )
                 Spacer(Modifier.height(16.dp))
-                Text(stringResource(R.string.scan_ready), style = MaterialTheme.typography.headlineMedium)
+                Text(
+                    if (isRfidMode) "RFID — Trigger drücken" else "Barcode — Trigger drücken",
+                    style = MaterialTheme.typography.headlineSmall,
+                )
+                Text(
+                    if (isRfidMode) "Modus: RFID" else "Modus: Barcode",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+
                 state.error?.let {
                     Spacer(Modifier.height(16.dp))
                     Text(it, color = MaterialTheme.colorScheme.error)
                 }
 
-                // RFID scan section
-                Spacer(Modifier.height(32.dp))
-                Button(
-                    onClick = { viewModel.toggleRfidScan() },
-                    colors = if (state.isRfidScanning) {
-                        ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
-                    } else {
-                        ButtonDefaults.buttonColors(containerColor = Cyan)
-                    },
-                    modifier = Modifier.fillMaxWidth().height(56.dp),
-                ) {
-                    Icon(
-                        if (state.isRfidScanning) Icons.Default.Stop else Icons.Default.Sensors,
-                        contentDescription = null,
-                        modifier = Modifier.padding(end = 8.dp),
-                    )
-                    Text(
-                        if (state.isRfidScanning) "RFID Stop" else "RFID Scannen",
-                        style = MaterialTheme.typography.labelLarge,
-                    )
-                }
-
-                if (state.rfidTags.isNotEmpty()) {
-                    Spacer(Modifier.height(16.dp))
+                // Show RFID tags if in RFID mode
+                if (isRfidMode && state.rfidTags.isNotEmpty()) {
+                    Spacer(Modifier.height(24.dp))
                     Text(
                         "${state.rfidTags.size} Tag(s) gefunden",
                         style = MaterialTheme.typography.titleMedium,
@@ -181,6 +180,10 @@ fun ScanScreen(
                                 }
                             }
                         }
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    OutlinedButton(onClick = { viewModel.clearResult() }) {
+                        Text("Tags leeren")
                     }
                 }
             }

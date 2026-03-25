@@ -18,12 +18,18 @@ class BroadcastScannerReceiver : BroadcastReceiver() {
 
     override fun onReceive(context: Context?, intent: Intent?) {
         intent ?: return
-        val barcode = intent.getStringExtra(ScanManager.BARCODE_STRING_TAG) ?: return
+        // Try SDK constant first, then fallback to common extras
+        val barcode = intent.getStringExtra(ScanManager.BARCODE_STRING_TAG)
+            ?: intent.getStringExtra("barcode_string")
+            ?: return
         val barcodeType = intent.getByteExtra(ScanManager.BARCODE_TYPE_TAG, 0.toByte())
         _scanEvents.tryEmit(BarcodeScanEvent(barcode.trim(), barcodeType.toString()))
     }
 
     fun getIntentFilter(): IntentFilter {
-        return IntentFilter(ScanManager.ACTION_DECODE)
+        val filter = IntentFilter()
+        filter.addAction(ScanManager.ACTION_DECODE)
+        filter.addAction("android.intent.ACTION_DECODE_DATA")
+        return filter
     }
 }

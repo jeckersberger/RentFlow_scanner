@@ -37,6 +37,8 @@ data class CheckOutUiState(
     val error: String? = null,
     val completed: Boolean = false,
     val adHocEquipment: Equipment? = null,
+    val isRfidBulkActive: Boolean = false,
+    val rfidResolving: Set<String> = emptySet(),
 )
 
 @HiltViewModel
@@ -50,9 +52,18 @@ class CheckOutViewModel @Inject constructor(
 
     init {
         loadProjects()
+        // Barcode scan events
         viewModelScope.launch {
             hardwareScanner.barcodeScanEvents.collect { event ->
                 onBarcodeScanned(event.barcode)
+            }
+        }
+        // RFID scan events for bulk mode
+        viewModelScope.launch {
+            hardwareScanner.rfidReadEvents.collect { event ->
+                if (_uiState.value.isRfidBulkActive) {
+                    onRfidTagScanned(event.epc)
+                }
             }
         }
     }
@@ -61,25 +72,29 @@ class CheckOutViewModel @Inject constructor(
         viewModelScope.launch {
             projectRepository.listActiveProjects().fold(
                 onSuccess = { projects ->
-                    val today = LocalDate.now()
-                    val sorted = projects.map { project ->
-                        val startDate = project.start_date?.let {
-                            runCatching { LocalDate.parse(it, DateTimeFormatter.ISO_DATE) }.getOrNull()
-                        }
-                        val days = startDate?.let { ChronoUnit.DAYS.between(today, it) } ?: Long.MAX_VALUE
-                        val urgency = when {
-                            days < 0 -> ProjectUrgency.OVERDUE
-                            days == 0L -> ProjectUrgency.TODAY
-                            days <= 2 -> ProjectUrgency.UPCOMING
-                            else -> ProjectUrgency.NORMAL
-                        }
-                        ProjectWithUrgency(project, urgency, days)
-                    }.sortedBy { it.daysUntilStart }
+                    val sorted = projects.toProjectsWithUrgency()
                     _uiState.update { s -> s.copy(projects = sorted) }
                 },
                 onFailure = { _uiState.update { s -> s.copy(error = it.message) } },
             )
         }
+    }
+
+    private fun List<Project>.toProjectsWithUrgency(): List<ProjectWithUrgency> {
+        val today = LocalDate.now()
+        return map { project ->
+            val startDate = project.start_date?.let {
+                runCatching { LocalDate.parse(it, DateTimeFormatter.ISO_DATE) }.getOrNull()
+            }
+            val days = startDate?.let { ChronoUnit.DAYS.between(today, it) } ?: Long.MAX_VALUE
+            val urgency = when {
+                days < 0 -> ProjectUrgency.OVERDUE
+                days == 0L -> ProjectUrgency.TODAY
+                days <= 2 -> ProjectUrgency.UPCOMING
+                else -> ProjectUrgency.NORMAL
+            }
+            ProjectWithUrgency(project, urgency, days)
+        }.sortedBy { it.daysUntilStart }
     }
 
     fun toggleShowAll() {
@@ -89,20 +104,7 @@ class CheckOutViewModel @Inject constructor(
                 _uiState.update { it.copy(isLoading = true) }
                 projectRepository.listProjects().fold(
                     onSuccess = { projects ->
-                        val today = LocalDate.now()
-                        val sorted = projects.map { project ->
-                            val startDate = project.start_date?.let {
-                                runCatching { LocalDate.parse(it, DateTimeFormatter.ISO_DATE) }.getOrNull()
-                            }
-                            val days = startDate?.let { ChronoUnit.DAYS.between(today, it) } ?: Long.MAX_VALUE
-                            val urgency = when {
-                                days < 0 -> ProjectUrgency.OVERDUE
-                                days == 0L -> ProjectUrgency.TODAY
-                                days <= 2 -> ProjectUrgency.UPCOMING
-                                else -> ProjectUrgency.NORMAL
-                            }
-                            ProjectWithUrgency(project, urgency, days)
-                        }.sortedBy { it.daysUntilStart }
+                        val sorted = projects.toProjectsWithUrgency()
                         _uiState.update { it.copy(allProjects = sorted, showAllJobs = true, isLoading = false) }
                     },
                     onFailure = { e -> _uiState.update { it.copy(error = e.message, isLoading = false) } },
@@ -116,17 +118,50 @@ class CheckOutViewModel @Inject constructor(
     fun selectProject(project: Project) {
         viewModelScope.launch {
             _uiState.update { it.copy(selectedProject = project, isLoading = true) }
-            // Load expected equipment for this project
             projectRepository.listProjectEquipment(project.id).fold(
                 onSuccess = { equipment ->
                     val ids = equipment.map { it.id }.toSet()
                     _uiState.update { it.copy(expectedEquipmentIds = ids) }
                 },
-                onFailure = { /* No equipment list available — allow all scans */ },
+                onFailure = { /* No equipment list available */ },
             )
             scannerRepository.createSession("out", project.id).fold(
                 onSuccess = { session -> _uiState.update { it.copy(sessionId = session.id, isLoading = false) } },
                 onFailure = { e -> _uiState.update { it.copy(isLoading = false, error = e.message) } },
+            )
+        }
+    }
+
+    fun toggleRfidBulk() {
+        val current = _uiState.value.isRfidBulkActive
+        if (!current) {
+            hardwareScanner.startRfidBulkRead()
+        } else {
+            hardwareScanner.stopRfid()
+        }
+        _uiState.update { it.copy(isRfidBulkActive = !current) }
+    }
+
+    private fun onRfidTagScanned(epc: String) {
+        val state = _uiState.value
+        if (state.sessionId == null) return
+        if (state.scannedItems.any { it.rfidTag == epc || it.barcode == epc }) return
+        if (epc in state.rfidResolving) return
+
+        _uiState.update { it.copy(rfidResolving = it.rfidResolving + epc) }
+        viewModelScope.launch {
+            scannerRepository.resolveBarcode(epc).fold(
+                onSuccess = { equipment ->
+                    _uiState.update { it.copy(rfidResolving = it.rfidResolving - epc) }
+                    val isExpected = state.expectedEquipmentIds.isEmpty() || equipment.id in state.expectedEquipmentIds
+                    if (isExpected) {
+                        addEquipment(equipment)
+                    }
+                    // In RFID bulk mode, skip ad-hoc confirmation for speed
+                },
+                onFailure = {
+                    _uiState.update { it.copy(rfidResolving = it.rfidResolving - epc) }
+                },
             )
         }
     }
@@ -143,7 +178,6 @@ class CheckOutViewModel @Inject constructor(
                     if (isExpected) {
                         addEquipment(equipment)
                     } else {
-                        // Not on the planned list — ask for confirmation
                         _uiState.update { it.copy(adHocEquipment = equipment) }
                     }
                 },
@@ -165,6 +199,7 @@ class CheckOutViewModel @Inject constructor(
     private fun addEquipment(equipment: Equipment) {
         val state = _uiState.value
         if (state.sessionId == null) return
+        if (state.scannedItems.any { it.id == equipment.id }) return
         viewModelScope.launch {
             scannerRepository.sessionScan(state.sessionId, equipment.barcode, "out")
             _uiState.update { it.copy(scannedItems = it.scannedItems + equipment) }
@@ -180,10 +215,21 @@ class CheckOutViewModel @Inject constructor(
         if (state.sessionId == null) return
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
+            if (state.isRfidBulkActive) {
+                hardwareScanner.stopRfid()
+                _uiState.update { it.copy(isRfidBulkActive = false) }
+            }
             scannerRepository.endSession(state.sessionId).fold(
                 onSuccess = { _uiState.update { it.copy(isLoading = false, completed = true) } },
                 onFailure = { e -> _uiState.update { it.copy(isLoading = false, error = e.message) } },
             )
+        }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        if (_uiState.value.isRfidBulkActive) {
+            hardwareScanner.stopRfid()
         }
     }
 }

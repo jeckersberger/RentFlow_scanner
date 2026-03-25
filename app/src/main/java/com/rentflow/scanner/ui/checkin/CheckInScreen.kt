@@ -1,26 +1,35 @@
 package com.rentflow.scanner.ui.checkin
 
+import android.net.Uri
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.StarBorder
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.core.content.FileProvider
 import androidx.hilt.navigation.compose.hiltViewModel
+import coil.compose.AsyncImage
 import com.rentflow.scanner.R
 import com.rentflow.scanner.domain.model.Project
+import com.rentflow.scanner.ui.theme.Cyan
 import com.rentflow.scanner.ui.theme.Warning
+import java.io.File
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,9 +39,26 @@ fun CheckInScreen(
     viewModel: CheckInViewModel = hiltViewModel(),
 ) {
     val state by viewModel.uiState.collectAsState()
+    val context = LocalContext.current
 
     LaunchedEffect(state.completed) {
         if (state.completed) onCompleted()
+    }
+
+    // Photo capture
+    var photoUri by remember { mutableStateOf<Uri?>(null) }
+    val cameraLauncher = rememberLauncherForActivityResult(ActivityResultContracts.TakePicture()) { success ->
+        viewModel.onPhotoTaken(if (success) photoUri else null)
+    }
+
+    // When photoTargetIndex changes, launch camera
+    LaunchedEffect(state.photoTargetIndex) {
+        if (state.photoTargetIndex >= 0) {
+            val file = File(context.cacheDir, "checkin_photo_${System.currentTimeMillis()}.jpg")
+            val uri = FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+            photoUri = uri
+            cameraLauncher.launch(uri)
+        }
     }
 
     Scaffold(
@@ -58,7 +84,6 @@ fun CheckInScreen(
                 Text(stringResource(R.string.checkin_returning_today), style = MaterialTheme.typography.titleLarge)
                 Spacer(Modifier.height(12.dp))
 
-                // Toggle button
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End,
@@ -103,36 +128,23 @@ fun CheckInScreen(
                     "${stringResource(R.string.checkin_title)}: ${state.selectedProject!!.name}",
                     style = MaterialTheme.typography.titleLarge,
                 )
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    "${state.scannedItems.size} Geräte gescannt",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
                 Spacer(Modifier.height(16.dp))
 
                 LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     itemsIndexed(state.scannedItems) { index, item ->
-                        Card(modifier = Modifier.fillMaxWidth()) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Text(item.equipment.name, style = MaterialTheme.typography.titleLarge)
-                                Text("Barcode: ${item.equipment.barcode}", style = MaterialTheme.typography.bodyMedium)
-                                Spacer(Modifier.height(8.dp))
-                                Text(stringResource(R.string.checkin_condition), style = MaterialTheme.typography.bodyLarge)
-                                Row {
-                                    (1..5).forEach { star ->
-                                        IconButton(onClick = { viewModel.updateCondition(index, star) }) {
-                                            Icon(
-                                                if (star <= item.condition) Icons.Default.Star else Icons.Default.StarBorder,
-                                                contentDescription = null,
-                                                tint = Warning,
-                                            )
-                                        }
-                                    }
-                                }
-                                OutlinedTextField(
-                                    value = item.notes,
-                                    onValueChange = { viewModel.updateNotes(index, it) },
-                                    label = { Text(stringResource(R.string.checkin_notes)) },
-                                    modifier = Modifier.fillMaxWidth(),
-                                    maxLines = 2,
-                                )
-                            }
-                        }
+                        CheckInItemCard(
+                            item = item,
+                            onConditionChange = { viewModel.updateCondition(index, it) },
+                            onNotesChange = { viewModel.updateNotes(index, it) },
+                            onPhoto = { viewModel.requestPhoto(index) },
+                            onRemove = { viewModel.removeItem(index) },
+                        )
                     }
                 }
                 if (state.scannedItems.isNotEmpty()) {
@@ -142,8 +154,109 @@ fun CheckInScreen(
                         enabled = !state.isLoading,
                         modifier = Modifier.fillMaxWidth().height(56.dp),
                     ) {
-                        Text("${stringResource(R.string.checkin_confirm)} (${state.scannedItems.size})")
+                        if (state.isLoading) {
+                            CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
+                        } else {
+                            Text("${stringResource(R.string.checkin_confirm)} (${state.scannedItems.size})")
+                        }
                     }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CheckInItemCard(
+    item: CheckInItem,
+    onConditionChange: (Int) -> Unit,
+    onNotesChange: (String) -> Unit,
+    onPhoto: () -> Unit,
+    onRemove: () -> Unit,
+) {
+    Card(modifier = Modifier.fillMaxWidth()) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(item.equipment.name, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                    Text(item.equipment.barcode, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+                IconButton(onClick = onRemove) {
+                    Icon(Icons.Default.Close, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                }
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            // Star rating
+            Text(stringResource(R.string.checkin_condition), style = MaterialTheme.typography.bodyMedium)
+            Row {
+                (1..5).forEach { star ->
+                    IconButton(
+                        onClick = { onConditionChange(star) },
+                        modifier = Modifier.size(40.dp),
+                    ) {
+                        Icon(
+                            if (star <= item.condition) Icons.Default.Star else Icons.Default.StarBorder,
+                            contentDescription = null,
+                            tint = Warning,
+                            modifier = Modifier.size(28.dp),
+                        )
+                    }
+                }
+                Spacer(Modifier.width(8.dp))
+                Text(
+                    when (item.condition) {
+                        1 -> "Defekt"
+                        2 -> "Beschädigt"
+                        3 -> "Gebrauchsspuren"
+                        4 -> "Gut"
+                        5 -> "Einwandfrei"
+                        else -> ""
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.align(Alignment.CenterVertically),
+                )
+            }
+
+            Spacer(Modifier.height(8.dp))
+
+            // Notes
+            OutlinedTextField(
+                value = item.notes,
+                onValueChange = onNotesChange,
+                label = { Text(stringResource(R.string.checkin_notes)) },
+                modifier = Modifier.fillMaxWidth(),
+                maxLines = 2,
+            )
+
+            Spacer(Modifier.height(8.dp))
+
+            // Photo
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                OutlinedButton(onClick = onPhoto) {
+                    Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(6.dp))
+                    Text(if (item.photoUri != null) "Foto ändern" else stringResource(R.string.checkin_photo))
+                }
+                item.photoUri?.let { uri ->
+                    Spacer(Modifier.width(12.dp))
+                    AsyncImage(
+                        model = uri,
+                        contentDescription = null,
+                        modifier = Modifier
+                            .size(48.dp)
+                            .clip(RoundedCornerShape(8.dp))
+                            .border(1.dp, Cyan, RoundedCornerShape(8.dp)),
+                        contentScale = ContentScale.Crop,
+                    )
+                    Spacer(Modifier.width(4.dp))
+                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Cyan, modifier = Modifier.size(18.dp))
                 }
             }
         }

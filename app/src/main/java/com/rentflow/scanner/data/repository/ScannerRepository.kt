@@ -146,6 +146,22 @@ class ScannerRepository @Inject constructor(
         }
     }
 
+    suspend fun updateEquipmentLocation(equipmentId: String, location: String): Result<Unit> {
+        if (tokenManager.getAccessToken() == "demo-access-token") {
+            return Result.success(Unit)
+        }
+        return try {
+            val response = scannerApi.updateLocation(equipmentId, mapOf("location" to location))
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception(response.body()?.message ?: "Standort-Update fehlgeschlagen"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     private suspend fun queueOffline(barcode: String, scanType: String, projectId: String?, notes: String?) {
         pendingScanDao.insert(
             PendingScanEntity(

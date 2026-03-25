@@ -1,5 +1,6 @@
 package com.rentflow.scanner.ui.checkin
 
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rentflow.scanner.data.hardware.HardwareScanner
@@ -18,6 +19,7 @@ data class CheckInItem(
     val equipment: Equipment,
     val condition: Int = 5,
     val notes: String = "",
+    val photoUri: Uri? = null,
 )
 
 data class CheckInUiState(
@@ -30,6 +32,7 @@ data class CheckInUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val completed: Boolean = false,
+    val photoTargetIndex: Int = -1,
 )
 
 @HiltViewModel
@@ -46,6 +49,11 @@ class CheckInViewModel @Inject constructor(
         viewModelScope.launch {
             hardwareScanner.barcodeScanEvents.collect { event ->
                 onBarcodeScanned(event.barcode)
+            }
+        }
+        viewModelScope.launch {
+            hardwareScanner.rfidReadEvents.collect { event ->
+                onBarcodeScanned(event.epc)
             }
         }
     }
@@ -107,7 +115,7 @@ class CheckInViewModel @Inject constructor(
     fun updateCondition(index: Int, condition: Int) {
         _uiState.update {
             val items = it.scannedItems.toMutableList()
-            items[index] = items[index].copy(condition = condition)
+            if (index in items.indices) items[index] = items[index].copy(condition = condition)
             it.copy(scannedItems = items)
         }
     }
@@ -115,7 +123,32 @@ class CheckInViewModel @Inject constructor(
     fun updateNotes(index: Int, notes: String) {
         _uiState.update {
             val items = it.scannedItems.toMutableList()
-            items[index] = items[index].copy(notes = notes)
+            if (index in items.indices) items[index] = items[index].copy(notes = notes)
+            it.copy(scannedItems = items)
+        }
+    }
+
+    fun requestPhoto(index: Int) {
+        _uiState.update { it.copy(photoTargetIndex = index) }
+    }
+
+    fun onPhotoTaken(uri: Uri?) {
+        val index = _uiState.value.photoTargetIndex
+        if (index < 0 || uri == null) {
+            _uiState.update { it.copy(photoTargetIndex = -1) }
+            return
+        }
+        _uiState.update {
+            val items = it.scannedItems.toMutableList()
+            if (index in items.indices) items[index] = items[index].copy(photoUri = uri)
+            it.copy(scannedItems = items, photoTargetIndex = -1)
+        }
+    }
+
+    fun removeItem(index: Int) {
+        _uiState.update {
+            val items = it.scannedItems.toMutableList()
+            if (index in items.indices) items.removeAt(index)
             it.copy(scannedItems = items)
         }
     }

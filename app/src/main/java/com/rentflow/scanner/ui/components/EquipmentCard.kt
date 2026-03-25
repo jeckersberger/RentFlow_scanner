@@ -3,6 +3,8 @@ package com.rentflow.scanner.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -18,6 +20,7 @@ fun EquipmentCard(
     equipment: Equipment,
     onClick: (() -> Unit)? = null,
     adHoc: Boolean = false,
+    onRemove: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     Card(
@@ -32,7 +35,7 @@ fun EquipmentCard(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(equipment.name, style = MaterialTheme.typography.titleLarge, modifier = Modifier.weight(1f))
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                     if (adHoc) {
                         Text(
                             "SPONTAN",
@@ -46,6 +49,16 @@ fun EquipmentCard(
                         )
                     }
                     StatusBadge(equipment.status)
+                    if (onRemove != null) {
+                        IconButton(onClick = onRemove, modifier = Modifier.size(32.dp)) {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(18.dp),
+                            )
+                        }
+                    }
                 }
             }
             Spacer(Modifier.height(8.dp))

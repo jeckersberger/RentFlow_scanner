@@ -16,11 +16,14 @@ class MockHardwareScanner @Inject constructor() : HardwareScanner {
     private val mockRfidTags = listOf("E200001", "E200002", "E200003")
     private var scanIndex = 0
 
+    override fun initBarcodeScan() {}
     override fun startBarcodeScan() {}
     override fun stopBarcodeScan() {}
+    override fun closeBarcodeScan() {}
     override fun startRfidRead() {}
     override fun startRfidBulkRead() {}
     override fun stopRfid() {}
+    override fun closeRfid() {}
 
     override suspend fun writeRfidTag(epc: String): RfidWriteResult {
         delay(500)
