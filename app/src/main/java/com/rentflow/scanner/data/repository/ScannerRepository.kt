@@ -26,32 +26,39 @@ class ScannerRepository @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
     suspend fun resolveBarcode(barcode: String): Result<Equipment> {
-        if (tokenManager.getAccessToken() == "demo-access-token") {
-            return Result.success(
-                Equipment(
-                    id = "demo-${barcode}",
-                    barcode = barcode,
-                    name = "Equipment $barcode",
-                    category = "Demo",
-                    status = EquipmentStatus.AVAILABLE,
-                    location = "Lager",
-                    projectName = null,
-                    rfidTag = null,
-                    imageUrl = null,
-                )
-            )
-        }
+        // Always try server first
         return try {
             val response = scannerApi.resolveBarcode(barcode)
             if (response.isSuccessful && response.body()?.data != null) {
                 Result.success(response.body()!!.data!!)
             } else {
-                Result.failure(Exception(response.body()?.message ?: "Equipment not found"))
+                // Server error — fallback to demo data only in demo mode
+                if (tokenManager.getAccessToken() == "demo-access-token") {
+                    Result.success(demoEquipment(barcode))
+                } else {
+                    Result.failure(Exception(response.body()?.message ?: "Equipment not found"))
+                }
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            if (tokenManager.getAccessToken() == "demo-access-token") {
+                Result.success(demoEquipment(barcode))
+            } else {
+                Result.failure(e)
+            }
         }
     }
+
+    private fun demoEquipment(barcode: String) = Equipment(
+        id = "demo-${barcode}",
+        barcode = barcode,
+        name = "Equipment $barcode",
+        category = "Demo",
+        status = EquipmentStatus.AVAILABLE,
+        location = "Lager",
+        projectName = null,
+        rfidTag = null,
+        imageUrl = null,
+    )
 
     suspend fun scan(barcode: String, scanType: String, projectId: String? = null, notes: String? = null): Result<ScanResult> {
         val request = ScanRequest(
@@ -147,25 +154,21 @@ class ScannerRepository @Inject constructor(
     }
 
     suspend fun updateEquipmentLocation(equipmentId: String, location: String): Result<Unit> {
-        if (tokenManager.getAccessToken() == "demo-access-token") {
-            return Result.success(Unit)
-        }
         return try {
             val response = scannerApi.updateLocation(equipmentId, mapOf("location" to location))
             if (response.isSuccessful) {
                 Result.success(Unit)
             } else {
-                Result.failure(Exception(response.body()?.message ?: "Standort-Update fehlgeschlagen"))
+                if (tokenManager.getAccessToken() == "demo-access-token") Result.success(Unit)
+                else Result.failure(Exception(response.body()?.message ?: "Standort-Update fehlgeschlagen"))
             }
         } catch (e: Exception) {
-            Result.failure(e)
+            if (tokenManager.getAccessToken() == "demo-access-token") Result.success(Unit)
+            else Result.failure(e)
         }
     }
 
     suspend fun getScanHistory(barcode: String): Result<List<ScanResult>> {
-        if (tokenManager.getAccessToken() == "demo-access-token") {
-            return Result.success(emptyList())
-        }
         return try {
             val response = scannerApi.scanHistory(barcode)
             if (response.isSuccessful && response.body()?.data != null) {
@@ -173,7 +176,7 @@ class ScannerRepository @Inject constructor(
             } else {
                 Result.success(emptyList())
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             Result.success(emptyList())
         }
     }
