@@ -123,8 +123,12 @@ fun EquipmentDetailScreen(
 
                 Button(
                     onClick = viewModel::pairRfidTag,
-                    enabled = !state.isWritingRfid,
                     modifier = Modifier.fillMaxWidth().height(56.dp),
+                    colors = if (state.isWritingRfid) {
+                        ButtonDefaults.buttonColors(containerColor = Warning)
+                    } else {
+                        ButtonDefaults.buttonColors()
+                    },
                 ) {
                     if (state.isWritingRfid) {
                         CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)

@@ -85,15 +85,15 @@ class ScanViewModel @Inject constructor(
 
     private fun activateMode(mode: String) {
         if (mode == SettingsDataStore.SCAN_MODE_BARCODE) {
-            // Close RFID, init barcode — waits for hardware trigger
+            // Close RFID, init barcode — ScanManager in HOST mode, trigger keys pass through
             hardwareScanner.stopRfid()
-            hardwareScanner.closeRfid()
             hardwareScanner.initBarcodeScan()
             _uiState.update { it.copy(isScanning = false) }
         } else {
-            // Close barcode, prepare RFID — does NOT auto-start, waits for trigger
+            // RFID mode — keep ScanManager open in HOST mode so trigger keys pass through
+            // Don't close barcode scanner — we need it to keep the trigger active
             hardwareScanner.stopBarcodeScan()
-            hardwareScanner.closeBarcodeScan()
+            hardwareScanner.initBarcodeScan() // Ensure ScanManager is open in HOST mode
             _uiState.update { it.copy(isScanning = false) }
         }
     }

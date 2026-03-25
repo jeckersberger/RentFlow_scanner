@@ -9,6 +9,8 @@ data class RfidWriteResult(val success: Boolean, val error: String? = null)
 interface HardwareScanner {
     val barcodeScanEvents: Flow<BarcodeScanEvent>
     val rfidReadEvents: Flow<RfidReadEvent>
+    /** Emits true when hardware trigger is pressed, false when released */
+    val triggerState: Flow<Boolean>
 
     fun initBarcodeScan()
     fun startBarcodeScan()

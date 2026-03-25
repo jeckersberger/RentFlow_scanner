@@ -146,60 +146,65 @@ class EquipmentDetailViewModel @Inject constructor(
         }
     }
 
+    private var pairJob: Job? = null
+
     fun pairRfidTag() {
         val eq = _uiState.value.equipment ?: return
-        viewModelScope.launch {
-            _uiState.update { it.copy(isWritingRfid = true, rfidWriteResult = null, rfidVerified = false) }
 
-            // Start RFID read to detect tag
-            hardwareScanner.startRfidRead()
-            var detectedEvent: RfidReadEvent? = null
-            val readJob = viewModelScope.launch {
-                hardwareScanner.rfidReadEvents.collect { event ->
-                    detectedEvent = event
-                }
-            }
-            kotlinx.coroutines.delay(1500) // Give user time to hold tag near reader
-            readJob.cancel()
-            hardwareScanner.stopRfid()
-
-            val event = detectedEvent
-            if (event == null) {
-                _uiState.update {
-                    it.copy(isWritingRfid = false, rfidWriteResult = RfidWriteResult(false, "Kein RFID-Tag erkannt. Bitte näher halten."))
-                }
-                return@launch
-            }
-
-            // Use TID as unique identifier (read-only, globally unique)
-            val tid = event.tid.ifBlank {
-                // Fallback: read TID explicitly
-                hardwareScanner.readTid(event.epc) ?: ""
-            }
-
-            val identifier = tid.ifBlank { event.epc } // Fallback to EPC if TID not readable
-
-            // Send pairing to backend: this TID belongs to this equipment
-            scannerRepository.pairRfidTag(eq.id, identifier).fold(
-                onSuccess = {
-                    _uiState.update {
-                        it.copy(
-                            isWritingRfid = false,
-                            rfidWriteResult = RfidWriteResult(true),
-                            rfidVerified = true,
-                            equipment = eq.copy(rfidTag = identifier),
-                        )
-                    }
-                },
-                onFailure = { e ->
-                    _uiState.update {
-                        it.copy(
-                            isWritingRfid = false,
-                            rfidWriteResult = RfidWriteResult(false, e.message),
-                        )
-                    }
-                },
-            )
+        // If already pairing, cancel it
+        if (_uiState.value.isWritingRfid) {
+            cancelPairing()
+            return
         }
+
+        _uiState.update { it.copy(isWritingRfid = true, rfidWriteResult = null, rfidVerified = false) }
+
+        // Start continuous RFID bulk read — waits for user to hold a tag
+        hardwareScanner.startRfidBulkRead()
+
+        pairJob = viewModelScope.launch {
+            // Wait for the first tag to appear
+            hardwareScanner.rfidReadEvents.collect { event ->
+                // Got a tag! Stop reading immediately
+                hardwareScanner.stopRfid()
+
+                // Use TID as unique identifier (read-only, globally unique)
+                val tid = event.tid.ifBlank {
+                    hardwareScanner.readTid(event.epc) ?: ""
+                }
+                val identifier = tid.ifBlank { event.epc }
+
+                // Send pairing to backend
+                scannerRepository.pairRfidTag(eq.id, identifier).fold(
+                    onSuccess = {
+                        _uiState.update {
+                            it.copy(
+                                isWritingRfid = false,
+                                rfidWriteResult = RfidWriteResult(true),
+                                rfidVerified = true,
+                                equipment = eq.copy(rfidTag = identifier),
+                            )
+                        }
+                    },
+                    onFailure = { e ->
+                        _uiState.update {
+                            it.copy(
+                                isWritingRfid = false,
+                                rfidWriteResult = RfidWriteResult(false, e.message),
+                            )
+                        }
+                    },
+                )
+                // Stop collecting after first tag
+                return@collect
+            }
+        }
+    }
+
+    private fun cancelPairing() {
+        pairJob?.cancel()
+        pairJob = null
+        hardwareScanner.stopRfid()
+        _uiState.update { it.copy(isWritingRfid = false) }
     }
 }

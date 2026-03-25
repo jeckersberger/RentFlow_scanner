@@ -12,6 +12,9 @@ class MockHardwareScanner @Inject constructor() : HardwareScanner {
     private val _rfidReadEvents = MutableSharedFlow<RfidReadEvent>()
     override val rfidReadEvents: Flow<RfidReadEvent> = _rfidReadEvents
 
+    private val _triggerState = MutableSharedFlow<Boolean>()
+    override val triggerState: Flow<Boolean> = _triggerState
+
     private val mockBarcodes = listOf("EQ-001", "EQ-002", "EQ-003", "EQ-004", "EQ-005")
     private val mockTids = listOf("E2801160200000", "E2801160200001", "E2801160200002")
     private var scanIndex = 0

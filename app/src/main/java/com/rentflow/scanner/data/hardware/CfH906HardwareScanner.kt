@@ -42,6 +42,10 @@ class CfH906HardwareScanner(
 
     override val barcodeScanEvents: Flow<BarcodeScanEvent> = broadcastReceiver.scanEvents
 
+    // --- Trigger State ---
+    private val _triggerState = MutableSharedFlow<Boolean>(extraBufferCapacity = 10)
+    override val triggerState: Flow<Boolean> = _triggerState
+
     // --- UHF RFID ---
     private val rfidReader by lazy { ReaderHelp() }
     private var isRfidConnected = false
@@ -93,8 +97,8 @@ class CfH906HardwareScanner(
                     isBarcodeOpen = true
                     // Switch to intent output mode (broadcasts result)
                     scanManager?.switchOutputMode(0)
-                    // Trigger mode: PULSE = hardware trigger activates scanner
-                    try { scanManager?.setTriggerMode(Triggering.PULSE) } catch (_: Exception) {}
+                    // Trigger mode: HOST = we control start/stop via key events
+                    try { scanManager?.setTriggerMode(Triggering.HOST) } catch (_: Exception) {}
                     // Disable keyboard wedge so we get broadcast instead
                     scanManager?.setParameterInts(
                         intArrayOf(PropertyID.WEDGE_KEYBOARD_ENABLE),
@@ -102,7 +106,7 @@ class CfH906HardwareScanner(
                     )
                     // Register receiver
                     context.registerReceiver(broadcastReceiver, broadcastReceiver.getIntentFilter())
-                    Log.d(TAG, "Barcode scanner initialized (waiting for hardware trigger)")
+                    Log.d(TAG, "Barcode scanner initialized in HOST mode (trigger keys pass through)")
                 } else {
                     Log.e(TAG, "Failed to open barcode scanner")
                 }
@@ -133,18 +137,11 @@ class CfH906HardwareScanner(
         try {
             if (isBarcodeOpen) {
                 scanManager?.stopDecode()
-                // Switch to HOST mode — trigger key no longer captured by ScanManager
-                try {
-                    scanManager?.setTriggerMode(Triggering.HOST)
-                    Log.d(TAG, "Barcode trigger set to HOST mode (keys pass through)")
-                } catch (_: Exception) {
-                    // Fallback: close scanner entirely
-                    scanManager?.closeScanner()
-                    scanManager = null
-                    Log.d(TAG, "Barcode scanner closed (HOST mode not available)")
-                }
+                scanManager?.closeScanner()
                 try { context.unregisterReceiver(broadcastReceiver) } catch (_: Exception) {}
                 isBarcodeOpen = false
+                scanManager = null
+                Log.d(TAG, "Barcode scanner closed")
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error closing barcode scanner", e)

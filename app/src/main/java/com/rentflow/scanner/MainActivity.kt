@@ -31,13 +31,7 @@ class MainActivity : AppCompatActivity() {
     @Inject lateinit var settingsDataStore: SettingsDataStore
 
     private var isRfidScanning = false
-    private var rfidStopHandler = android.os.Handler(android.os.Looper.getMainLooper())
-    private val rfidStopRunnable = Runnable {
-        if (isRfidScanning) {
-            hardwareScanner.stopRfid()
-            isRfidScanning = false
-        }
-    }
+    private var isTriggerHeld = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -98,39 +92,51 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private fun isTriggerKey(keyCode: Int): Boolean =
+        keyCode == 523 || keyCode == 520 || keyCode == 521 ||
+        keyCode == KeyEvent.KEYCODE_F9 || keyCode == KeyEvent.KEYCODE_F10
+
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        if (keyCode == 523 || keyCode == 520 || keyCode == 521 || keyCode == KeyEvent.KEYCODE_F9 || keyCode == KeyEvent.KEYCODE_F10) {
-            val mode = kotlinx.coroutines.runBlocking {
-                settingsDataStore.scanMode.first()
+        if (!isTriggerKey(keyCode)) return super.onKeyDown(keyCode, event)
+        if (isTriggerHeld) return true // Already handling
+
+        isTriggerHeld = true
+        val mode = kotlinx.coroutines.runBlocking { settingsDataStore.scanMode.first() }
+
+        if (mode == SettingsDataStore.SCAN_MODE_RFID) {
+            // RFID mode: start continuous read while trigger held
+            if (!isRfidScanning) {
+                hardwareScanner.startRfidBulkRead()
+                isRfidScanning = true
+                android.util.Log.d("MainActivity", "RFID scan started (trigger down)")
             }
-            if (mode == SettingsDataStore.SCAN_MODE_RFID) {
-                // Every KeyDown resets the stop timer — keeps scanning alive
-                rfidStopHandler.removeCallbacks(rfidStopRunnable)
-                if (!isRfidScanning) {
-                    hardwareScanner.startRfidBulkRead()
-                    isRfidScanning = true
-                }
-                return true
-            }
-            return super.onKeyDown(keyCode, event)
+        } else {
+            // Barcode mode: start decode (ScanManager in HOST mode)
+            hardwareScanner.startBarcodeScan()
+            android.util.Log.d("MainActivity", "Barcode decode started (trigger down)")
         }
-        return super.onKeyDown(keyCode, event)
+        return true
     }
 
     override fun onKeyUp(keyCode: Int, event: KeyEvent?): Boolean {
-        if (keyCode == 523 || keyCode == 520 || keyCode == 521 || keyCode == KeyEvent.KEYCODE_F9 || keyCode == KeyEvent.KEYCODE_F10) {
-            val mode = kotlinx.coroutines.runBlocking {
-                settingsDataStore.scanMode.first()
+        if (!isTriggerKey(keyCode)) return super.onKeyUp(keyCode, event)
+
+        isTriggerHeld = false
+        val mode = kotlinx.coroutines.runBlocking { settingsDataStore.scanMode.first() }
+
+        if (mode == SettingsDataStore.SCAN_MODE_RFID) {
+            // RFID mode: stop immediately when trigger released
+            if (isRfidScanning) {
+                hardwareScanner.stopRfid()
+                isRfidScanning = false
+                android.util.Log.d("MainActivity", "RFID scan stopped (trigger up)")
             }
-            if (mode == SettingsDataStore.SCAN_MODE_RFID) {
-                // Stop only after 2s of no new KeyDown — trigger truly released
-                rfidStopHandler.removeCallbacks(rfidStopRunnable)
-                rfidStopHandler.postDelayed(rfidStopRunnable, 200)
-                return true
-            }
-            return super.onKeyUp(keyCode, event)
+        } else {
+            // Barcode mode: stop decode
+            hardwareScanner.stopBarcodeScan()
+            android.util.Log.d("MainActivity", "Barcode decode stopped (trigger up)")
         }
-        return super.onKeyUp(keyCode, event)
+        return true
     }
 
     override fun onUserInteraction() {
