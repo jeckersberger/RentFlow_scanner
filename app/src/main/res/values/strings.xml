@@ -8,7 +8,7 @@
     <string name="login_qr_hint">QR-Code im Browser scannen um sich anzumelden</string>
     <string name="home_title">Scanner</string>
     <string name="nav_home">Start</string>
-    <string name="nav_scan">Scannen</string>
+    <string name="nav_scan">Info</string>
     <string name="nav_checkout">Check-Out</string>
     <string name="nav_checkin">Check-In</string>
     <string name="nav_inventory">Inventur</string>
