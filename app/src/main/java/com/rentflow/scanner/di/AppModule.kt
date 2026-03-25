@@ -4,12 +4,15 @@ import android.content.Context
 import androidx.room.Room
 import com.rentflow.scanner.data.api.*
 import com.rentflow.scanner.data.db.ScannerDatabase
+import com.rentflow.scanner.data.preferences.SettingsDataStore
 import com.rentflow.scanner.data.preferences.TokenManager
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -21,13 +24,20 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object AppModule {
 
-    private const val DEFAULT_BASE_URL = "http://localhost:8005/"
+    @Provides
+    @Singleton
+    fun provideBaseUrl(settingsDataStore: SettingsDataStore): String {
+        val url = runBlocking { settingsDataStore.serverUrl.first() }
+        val base = url.ifBlank { SettingsDataStore.DEFAULT_SERVER_URL }
+        return if (base.endsWith("/")) base else "$base/"
+    }
 
     @Provides
     @Singleton
     fun provideOkHttpClient(
         authInterceptor: AuthInterceptor,
         tokenManager: TokenManager,
+        baseUrl: String,
     ): OkHttpClient {
         val logging = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
@@ -35,7 +45,7 @@ object AppModule {
         return OkHttpClient.Builder()
             .addInterceptor(authInterceptor)
             .addInterceptor(logging)
-            .authenticator(TokenAuthenticator(tokenManager, DEFAULT_BASE_URL))
+            .authenticator(TokenAuthenticator(tokenManager, baseUrl))
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(15, TimeUnit.SECONDS)
             .build()
@@ -43,9 +53,9 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideRetrofit(client: OkHttpClient): Retrofit {
+    fun provideRetrofit(client: OkHttpClient, baseUrl: String): Retrofit {
         return Retrofit.Builder()
-            .baseUrl(DEFAULT_BASE_URL)
+            .baseUrl(baseUrl)
             .client(client)
             .addConverterFactory(GsonConverterFactory.create())
             .build()

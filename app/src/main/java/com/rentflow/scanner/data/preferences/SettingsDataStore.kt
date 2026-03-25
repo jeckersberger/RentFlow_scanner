@@ -19,7 +19,7 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(na
 class SettingsDataStore @Inject constructor(
     @ApplicationContext private val context: Context,
 ) {
-    val serverUrl: Flow<String> = context.dataStore.data.map { it[KEY_SERVER_URL] ?: "" }
+    val serverUrl: Flow<String> = context.dataStore.data.map { it[KEY_SERVER_URL] ?: DEFAULT_SERVER_URL }
     val language: Flow<String> = context.dataStore.data.map { it[KEY_LANGUAGE] ?: "de" }
     val scanMode: Flow<String> = context.dataStore.data.map { it[KEY_SCAN_MODE] ?: SCAN_MODE_BARCODE }
     val lockTimeoutMinutes: Flow<Int> = context.dataStore.data.map { it[KEY_LOCK_TIMEOUT] ?: DEFAULT_LOCK_TIMEOUT_MINUTES }
@@ -46,6 +46,7 @@ class SettingsDataStore @Inject constructor(
     }
 
     companion object {
+        const val DEFAULT_SERVER_URL = "https://dash.je-soundulight.de"
         const val SCAN_MODE_BARCODE = "barcode"
         const val SCAN_MODE_RFID = "rfid"
         const val DEFAULT_LOCK_TIMEOUT_MINUTES = 30

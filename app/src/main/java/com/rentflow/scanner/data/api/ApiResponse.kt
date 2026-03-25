@@ -3,13 +3,16 @@ package com.rentflow.scanner.data.api
 data class ApiResponse<T>(
     val data: T?,
     val message: String?,
+    val error: String? = null,
+    val code: String? = null,
 )
 
 data class LoginResponse(
     val access_token: String,
     val refresh_token: String,
-    val expires_in: Int,
-    val token_type: String,
+    val expires_in: Int = 3600,
+    val token_type: String = "Bearer",
+    val tenant_id: String? = null,
 )
 
 data class LoginRequest(

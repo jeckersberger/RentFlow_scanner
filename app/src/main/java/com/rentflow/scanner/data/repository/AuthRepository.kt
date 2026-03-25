@@ -1,7 +1,10 @@
 package com.rentflow.scanner.data.repository
 
+import com.google.gson.Gson
+import com.rentflow.scanner.data.api.ApiResponse
 import com.rentflow.scanner.data.api.AuthApi
 import com.rentflow.scanner.data.api.LoginRequest
+import com.rentflow.scanner.data.api.LoginResponse
 import com.rentflow.scanner.data.api.QrLoginRequest
 import com.rentflow.scanner.data.preferences.TokenManager
 import com.rentflow.scanner.domain.model.User
@@ -14,7 +17,7 @@ class AuthRepository @Inject constructor(
     private val tokenManager: TokenManager,
 ) {
     suspend fun login(email: String, password: String): Result<Unit> {
-        // Demo-Login für Tests ohne Backend
+        // Demo-Login als Fallback
         if (email == "test@rentflow.de" && password == "test1234") {
             tokenManager.saveTokens("demo-access-token", "demo-refresh-token", "")
             return Result.success(Unit)
@@ -23,10 +26,15 @@ class AuthRepository @Inject constructor(
             val response = authApi.login(LoginRequest(email, password))
             if (response.isSuccessful && response.body()?.data != null) {
                 val data = response.body()!!.data!!
-                tokenManager.saveTokens(data.access_token, data.refresh_token, "")
+                tokenManager.saveTokens(data.access_token, data.refresh_token, data.tenant_id ?: "")
                 Result.success(Unit)
             } else {
-                Result.failure(Exception(response.body()?.message ?: "Login failed"))
+                // Parse error from response body
+                val errorMsg = parseError(response.errorBody()?.string())
+                    ?: response.body()?.message
+                    ?: response.body()?.error
+                    ?: "Login failed"
+                Result.failure(Exception(errorMsg))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -38,10 +46,13 @@ class AuthRepository @Inject constructor(
             val response = authApi.qrLogin(QrLoginRequest(qrToken))
             if (response.isSuccessful && response.body()?.data != null) {
                 val data = response.body()!!.data!!
-                tokenManager.saveTokens(data.access_token, data.refresh_token, "")
+                tokenManager.saveTokens(data.access_token, data.refresh_token, data.tenant_id ?: "")
                 Result.success(Unit)
             } else {
-                Result.failure(Exception(response.body()?.message ?: "QR-Login fehlgeschlagen"))
+                val errorMsg = parseError(response.errorBody()?.string())
+                    ?: response.body()?.message
+                    ?: "QR-Login fehlgeschlagen"
+                Result.failure(Exception(errorMsg))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -68,5 +79,15 @@ class AuthRepository @Inject constructor(
 
     fun logout() {
         tokenManager.clearTokens()
+    }
+
+    private fun parseError(errorBody: String?): String? {
+        if (errorBody == null) return null
+        return try {
+            val json = Gson().fromJson(errorBody, Map::class.java)
+            (json["message"] as? String) ?: (json["error"] as? String)
+        } catch (_: Exception) {
+            null
+        }
     }
 }
