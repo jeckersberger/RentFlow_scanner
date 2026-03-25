@@ -57,6 +57,7 @@ class CheckOutViewModel @Inject constructor(
 
     init {
         loadProjects()
+        hardwareScanner.initBarcodeScan()
         // Barcode scan events
         viewModelScope.launch {
             hardwareScanner.barcodeScanEvents.collect { event ->
@@ -293,6 +294,7 @@ class CheckOutViewModel @Inject constructor(
 
     override fun onCleared() {
         super.onCleared()
+        hardwareScanner.closeBarcodeScan()
         if (_uiState.value.isRfidBulkActive) {
             hardwareScanner.stopRfid()
         }

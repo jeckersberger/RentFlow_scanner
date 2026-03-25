@@ -58,6 +58,7 @@ class InventoryViewModel @Inject constructor(
 
     init {
         loadZones()
+        hardwareScanner.initBarcodeScan()
         viewModelScope.launch {
             hardwareScanner.barcodeScanEvents.collect { event ->
                 onBarcodeScanned(event.barcode)
@@ -68,6 +69,11 @@ class InventoryViewModel @Inject constructor(
                 onBarcodeScanned(event.epc)
             }
         }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        hardwareScanner.closeBarcodeScan()
     }
 
     private fun loadZones() {

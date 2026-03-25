@@ -56,6 +56,7 @@ class CheckInViewModel @Inject constructor(
 
     init {
         loadJobs()
+        hardwareScanner.initBarcodeScan()
         viewModelScope.launch {
             hardwareScanner.barcodeScanEvents.collect { event ->
                 onBarcodeScanned(event.barcode)
@@ -260,5 +261,10 @@ class CheckInViewModel @Inject constructor(
 
     fun dismissSummary() {
         _uiState.update { it.copy(completed = true) }
+    }
+
+    override fun onCleared() {
+        super.onCleared()
+        hardwareScanner.closeBarcodeScan()
     }
 }
