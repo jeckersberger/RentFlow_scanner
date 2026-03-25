@@ -29,7 +29,7 @@ class HomeViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             authRepository.getCurrentUser().onSuccess { user ->
-                _uiState.update { it.copy(userName = user.name) }
+                _uiState.update { it.copy(userName = user.displayName) }
             }
         }
         viewModelScope.launch {

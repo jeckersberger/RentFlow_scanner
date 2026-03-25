@@ -26,10 +26,10 @@ class AuthRepository @Inject constructor(
             val response = authApi.login(LoginRequest(email, password))
             if (response.isSuccessful && response.body()?.data != null) {
                 val data = response.body()!!.data!!
-                tokenManager.saveTokens(data.access_token, data.refresh_token, data.tenant_id ?: "")
+                val tenantId = data.user?.tenant_id ?: data.tenant_id ?: ""
+                tokenManager.saveTokens(data.access_token, data.refresh_token, tenantId)
                 Result.success(Unit)
             } else {
-                // Parse error from response body
                 val errorMsg = parseError(response.errorBody()?.string())
                     ?: response.body()?.message
                     ?: response.body()?.error
@@ -46,7 +46,8 @@ class AuthRepository @Inject constructor(
             val response = authApi.qrLogin(QrLoginRequest(qrToken))
             if (response.isSuccessful && response.body()?.data != null) {
                 val data = response.body()!!.data!!
-                tokenManager.saveTokens(data.access_token, data.refresh_token, data.tenant_id ?: "")
+                val tenantId = data.user?.tenant_id ?: data.tenant_id ?: ""
+                tokenManager.saveTokens(data.access_token, data.refresh_token, tenantId)
                 Result.success(Unit)
             } else {
                 val errorMsg = parseError(response.errorBody()?.string())
@@ -61,7 +62,7 @@ class AuthRepository @Inject constructor(
 
     suspend fun getCurrentUser(): Result<User> {
         if (tokenManager.getAccessToken() == "demo-access-token") {
-            return Result.success(User("demo", "test@rentflow.de", "Test User", listOf("scanner"), "demo-tenant"))
+            return Result.success(User(id = "demo", email = "test@rentflow.de", name = "Test User", roles = listOf("scanner"), tenantId = "demo-tenant"))
         }
         return try {
             val response = authApi.me()
