@@ -31,6 +31,13 @@ class MainActivity : AppCompatActivity() {
     @Inject lateinit var settingsDataStore: SettingsDataStore
 
     private var isRfidScanning = false
+    private var rfidStopHandler = android.os.Handler(android.os.Looper.getMainLooper())
+    private val rfidStopRunnable = Runnable {
+        if (isRfidScanning) {
+            hardwareScanner.stopRfid()
+            isRfidScanning = false
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -92,19 +99,19 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
-        // Hardware trigger = KEY_NUMERIC_POUND (523) or KEY_F9 (0x208=520) / KEY_F10 (0x209=521)
         if (keyCode == 523 || keyCode == 520 || keyCode == 521 || keyCode == KeyEvent.KEYCODE_F9 || keyCode == KeyEvent.KEYCODE_F10) {
             val mode = kotlinx.coroutines.runBlocking {
                 settingsDataStore.scanMode.first()
             }
             if (mode == SettingsDataStore.SCAN_MODE_RFID) {
+                // Cancel any pending stop — trigger is still held
+                rfidStopHandler.removeCallbacks(rfidStopRunnable)
                 if (!isRfidScanning) {
                     hardwareScanner.startRfidBulkRead()
                     isRfidScanning = true
                 }
                 return true
             }
-            // Barcode mode: let ScanManager handle it via broadcast
             return super.onKeyDown(keyCode, event)
         }
         return super.onKeyDown(keyCode, event)
@@ -116,10 +123,9 @@ class MainActivity : AppCompatActivity() {
                 settingsDataStore.scanMode.first()
             }
             if (mode == SettingsDataStore.SCAN_MODE_RFID) {
-                if (isRfidScanning) {
-                    hardwareScanner.stopRfid()
-                    isRfidScanning = false
-                }
+                // Delay stop by 300ms to debounce rapid key events
+                rfidStopHandler.removeCallbacks(rfidStopRunnable)
+                rfidStopHandler.postDelayed(rfidStopRunnable, 1000)
                 return true
             }
             return super.onKeyUp(keyCode, event)

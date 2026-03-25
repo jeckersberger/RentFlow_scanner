@@ -119,19 +119,25 @@ class CfH906HardwareScanner(
         try {
             if (isBarcodeOpen) {
                 scanManager?.stopDecode()
-                // Disable trigger key so it doesn't interfere with RFID
-                try {
-                    scanManager?.setParameterInts(
-                        intArrayOf(PropertyID.TRIGGERING_MODES),
-                        intArrayOf(0) // Disable hardware trigger for barcode
-                    )
-                } catch (_: Exception) {}
                 scanManager?.closeScanner()
                 try { context.unregisterReceiver(broadcastReceiver) } catch (_: Exception) {}
                 isBarcodeOpen = false
                 scanManager = null
-                Log.d(TAG, "Barcode scanner closed + trigger disabled")
+                Log.d(TAG, "Barcode scanner closed")
             }
+            // Disable the system scan service so trigger keys pass through to the app
+            try {
+                val sm = ScanManager()
+                sm.openScanner()
+                sm.switchOutputMode(0) // intent mode
+                // Disable all trigger actions — keys will be forwarded as KeyEvents
+                sm.setParameterInts(
+                    intArrayOf(PropertyID.TRIGGERING_MODES),
+                    intArrayOf(0)
+                )
+                sm.closeScanner()
+                Log.d(TAG, "System scan trigger disabled for RFID mode")
+            } catch (_: Exception) {}
         } catch (e: Exception) {
             Log.e(TAG, "Error closing barcode scanner", e)
         }
