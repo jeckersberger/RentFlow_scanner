@@ -3,6 +3,7 @@ package com.rentflow.scanner.ui.login
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rentflow.scanner.data.repository.AuthRepository
+import com.rentflow.scanner.data.service.SessionTimeoutManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -22,6 +23,7 @@ data class LoginUiState(
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val authRepository: AuthRepository,
+    private val sessionTimeoutManager: SessionTimeoutManager,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState
@@ -45,6 +47,7 @@ class LoginViewModel @Inject constructor(
             val result = authRepository.login(state.email, state.password)
             _uiState.update {
                 if (result.isSuccess) {
+                    sessionTimeoutManager.reset()
                     it.copy(isLoading = false, loginSuccess = true)
                 } else {
                     it.copy(isLoading = false, error = result.exceptionOrNull()?.message ?: "Login fehlgeschlagen")
@@ -67,6 +70,7 @@ class LoginViewModel @Inject constructor(
             val result = authRepository.qrLogin(qrToken)
             _uiState.update {
                 if (result.isSuccess) {
+                    sessionTimeoutManager.reset()
                     it.copy(isLoading = false, loginSuccess = true)
                 } else {
                     it.copy(isLoading = false, error = result.exceptionOrNull()?.message ?: "QR-Login fehlgeschlagen")

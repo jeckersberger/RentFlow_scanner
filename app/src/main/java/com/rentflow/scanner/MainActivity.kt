@@ -78,9 +78,10 @@ class MainActivity : AppCompatActivity() {
                         })
                     }
                     lockState == LockState.FULL_RELOGIN -> {
-                        // Full re-login required
-                        authRepository.logout()
-                        sessionTimeoutManager.reset()
+                        // Full re-login required — show login screen
+                        LaunchedEffect(Unit) {
+                            authRepository.logout()
+                        }
                         AppNavigation(startDestination = Routes.LOGIN)
                     }
                     lockState == LockState.LOCKED -> {
@@ -91,12 +92,11 @@ class MainActivity : AppCompatActivity() {
                             onUnlock = { sessionTimeoutManager.unlock() },
                             onFullLogin = {
                                 authRepository.logout()
-                                sessionTimeoutManager.reset()
+                                sessionTimeoutManager.requireFullLogin()
                             },
                             onPasswordSubmit = { password ->
                                 isUnlocking = true
                                 lockError = null
-                                // For demo/offline, accept any non-empty password if logged in
                                 if (authRepository.isLoggedIn()) {
                                     sessionTimeoutManager.unlock()
                                 } else {
