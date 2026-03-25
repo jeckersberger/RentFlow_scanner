@@ -2,6 +2,7 @@ package com.rentflow.scanner.ui.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.rentflow.scanner.RentFlowScannerApp
 import com.rentflow.scanner.data.preferences.SettingsDataStore
 import com.rentflow.scanner.data.service.AppUpdateService
 import com.rentflow.scanner.data.service.DownloadState
@@ -76,6 +77,8 @@ class SettingsViewModel @Inject constructor(
             settingsDataStore.setServerUrl(_uiState.value.serverUrl)
             settingsDataStore.setLanguage(_uiState.value.language)
             settingsDataStore.setScanMode(_uiState.value.scanMode)
+            // Apply language change immediately
+            RentFlowScannerApp.applyLanguage(_uiState.value.language)
             _uiState.update { it.copy(saved = true) }
         }
     }

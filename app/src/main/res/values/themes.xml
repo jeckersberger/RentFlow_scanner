@@ -1,5 +1,5 @@
 <resources>
-    <style name="Theme.RentFlowScanner" parent="android:Theme.Material.NoActionBar">
+    <style name="Theme.RentFlowScanner" parent="Theme.AppCompat.NoActionBar">
         <item name="android:statusBarColor">#FF0A0F1A</item>
         <item name="android:navigationBarColor">#FF0A0F1A</item>
         <item name="android:windowBackground">#FF0A0F1A</item>
