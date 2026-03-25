@@ -27,7 +27,7 @@ class FindMyScannerWorker @AssistedInject constructor(
             }
             Result.success()
         } catch (e: Exception) {
-            Result.retry()
+            Result.success()
         }
     }
 

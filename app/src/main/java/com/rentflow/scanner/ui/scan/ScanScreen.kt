@@ -1,8 +1,8 @@
 package com.rentflow.scanner.ui.scan
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -11,14 +11,15 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.rentflow.scanner.R
 import com.rentflow.scanner.domain.model.EquipmentStatus
 import com.rentflow.scanner.ui.components.EquipmentCard
+import com.rentflow.scanner.ui.theme.Cyan
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -106,7 +107,8 @@ fun ScanScreen(
                     Text(stringResource(R.string.scan_ready))
                 }
             } else {
-                Spacer(Modifier.height(64.dp))
+                // Scan ready state
+                Spacer(Modifier.height(32.dp))
                 Icon(
                     Icons.Default.QrCodeScanner,
                     contentDescription = null,
@@ -118,6 +120,68 @@ fun ScanScreen(
                 state.error?.let {
                     Spacer(Modifier.height(16.dp))
                     Text(it, color = MaterialTheme.colorScheme.error)
+                }
+
+                // RFID scan section
+                Spacer(Modifier.height(32.dp))
+                Button(
+                    onClick = { viewModel.toggleRfidScan() },
+                    colors = if (state.isRfidScanning) {
+                        ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                    } else {
+                        ButtonDefaults.buttonColors(containerColor = Cyan)
+                    },
+                    modifier = Modifier.fillMaxWidth().height(56.dp),
+                ) {
+                    Icon(
+                        if (state.isRfidScanning) Icons.Default.Stop else Icons.Default.Sensors,
+                        contentDescription = null,
+                        modifier = Modifier.padding(end = 8.dp),
+                    )
+                    Text(
+                        if (state.isRfidScanning) "RFID Stop" else "RFID Scannen",
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                }
+
+                if (state.rfidTags.isNotEmpty()) {
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        "${state.rfidTags.size} Tag(s) gefunden",
+                        style = MaterialTheme.typography.titleMedium,
+                        color = Cyan,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    LazyColumn(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        items(state.rfidTags) { tag ->
+                            Card(modifier = Modifier.fillMaxWidth()) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically,
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            tag.epc,
+                                            style = MaterialTheme.typography.bodyLarge,
+                                            fontFamily = FontFamily.Monospace,
+                                            fontWeight = FontWeight.Bold,
+                                        )
+                                    }
+                                    Text(
+                                        "${tag.rssi} dBm",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             }
         }

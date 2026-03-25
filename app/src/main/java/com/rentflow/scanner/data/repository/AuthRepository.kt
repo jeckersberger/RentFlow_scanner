@@ -14,6 +14,11 @@ class AuthRepository @Inject constructor(
     private val tokenManager: TokenManager,
 ) {
     suspend fun login(email: String, password: String): Result<Unit> {
+        // Demo-Login für Tests ohne Backend
+        if (email == "test@rentflow.de" && password == "test1234") {
+            tokenManager.saveTokens("demo-access-token", "demo-refresh-token", "")
+            return Result.success(Unit)
+        }
         return try {
             val response = authApi.login(LoginRequest(email, password))
             if (response.isSuccessful && response.body()?.data != null) {
@@ -44,6 +49,9 @@ class AuthRepository @Inject constructor(
     }
 
     suspend fun getCurrentUser(): Result<User> {
+        if (tokenManager.getAccessToken() == "demo-access-token") {
+            return Result.success(User("demo", "test@rentflow.de", "Test User", listOf("scanner"), "demo-tenant"))
+        }
         return try {
             val response = authApi.me()
             if (response.isSuccessful && response.body()?.data != null) {

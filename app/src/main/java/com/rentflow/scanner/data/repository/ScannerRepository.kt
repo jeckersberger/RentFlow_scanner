@@ -7,7 +7,9 @@ import com.rentflow.scanner.data.api.ScannerApi
 import com.rentflow.scanner.data.api.SessionCreateRequest
 import com.rentflow.scanner.data.db.PendingScanDao
 import com.rentflow.scanner.data.db.PendingScanEntity
+import com.rentflow.scanner.data.preferences.TokenManager
 import com.rentflow.scanner.domain.model.Equipment
+import com.rentflow.scanner.domain.model.EquipmentStatus
 import com.rentflow.scanner.domain.model.ScanResult
 import com.rentflow.scanner.domain.model.ScanSession
 import com.rentflow.scanner.worker.SyncWorker
@@ -20,9 +22,25 @@ import javax.inject.Singleton
 class ScannerRepository @Inject constructor(
     private val scannerApi: ScannerApi,
     private val pendingScanDao: PendingScanDao,
+    private val tokenManager: TokenManager,
     @ApplicationContext private val context: Context,
 ) {
     suspend fun resolveBarcode(barcode: String): Result<Equipment> {
+        if (tokenManager.getAccessToken() == "demo-access-token") {
+            return Result.success(
+                Equipment(
+                    id = "demo-${barcode}",
+                    barcode = barcode,
+                    name = "Equipment $barcode",
+                    category = "Demo",
+                    status = EquipmentStatus.AVAILABLE,
+                    location = "Lager",
+                    projectName = null,
+                    rfidTag = null,
+                    imageUrl = null,
+                )
+            )
+        }
         return try {
             val response = scannerApi.resolveBarcode(barcode)
             if (response.isSuccessful && response.body()?.data != null) {
