@@ -112,10 +112,18 @@ class CfH906HardwareScanner(
         try {
             if (isBarcodeOpen) {
                 scanManager?.stopDecode()
+                // Disable trigger key so it doesn't interfere with RFID
+                try {
+                    scanManager?.setParameterInts(
+                        intArrayOf(PropertyID.TRIGGERING_MODES),
+                        intArrayOf(0) // Disable hardware trigger for barcode
+                    )
+                } catch (_: Exception) {}
                 scanManager?.closeScanner()
                 try { context.unregisterReceiver(broadcastReceiver) } catch (_: Exception) {}
                 isBarcodeOpen = false
-                Log.d(TAG, "Barcode scanner closed")
+                scanManager = null
+                Log.d(TAG, "Barcode scanner closed + trigger disabled")
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error closing barcode scanner", e)
@@ -166,10 +174,14 @@ class CfH906HardwareScanner(
         }
     }
 
+    private var isRfidReading = false
+
     override fun startRfidBulkRead() {
+        if (isRfidReading) return
         if (!connectRfid()) return
         try {
             rfidReader.StartRead()
+            isRfidReading = true
             Log.d(TAG, "RFID bulk read started")
         } catch (e: Exception) {
             Log.e(TAG, "Error starting bulk RFID read", e)
@@ -178,8 +190,10 @@ class CfH906HardwareScanner(
 
     override fun stopRfid() {
         try {
-            if (isRfidConnected) {
+            if (isRfidConnected && isRfidReading) {
                 rfidReader.StopRead()
+                isRfidReading = false
+                Log.d(TAG, "RFID bulk read stopped")
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error stopping RFID", e)
@@ -189,7 +203,10 @@ class CfH906HardwareScanner(
     override fun closeRfid() {
         try {
             if (isRfidConnected) {
-                rfidReader.StopRead()
+                if (isRfidReading) {
+                    rfidReader.StopRead()
+                    isRfidReading = false
+                }
                 rfidReader.DisConnect()
                 isRfidConnected = false
             }
