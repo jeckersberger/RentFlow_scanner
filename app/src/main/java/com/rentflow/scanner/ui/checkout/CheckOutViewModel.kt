@@ -81,7 +81,7 @@ class CheckOutViewModel @Inject constructor(
                     val sorted = projects.toProjectsWithUrgency()
                     _uiState.update { s -> s.copy(projects = sorted) }
                 },
-                onFailure = { _uiState.update { s -> s.copy(error = it.message) } },
+                onFailure = { /* Endpoint not available yet — show empty list */ },
             )
         }
     }

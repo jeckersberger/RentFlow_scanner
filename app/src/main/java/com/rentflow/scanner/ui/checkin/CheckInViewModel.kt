@@ -73,7 +73,7 @@ class CheckInViewModel @Inject constructor(
         viewModelScope.launch {
             projectRepository.listReturningToday().fold(
                 onSuccess = { _uiState.update { s -> s.copy(returningToday = it) } },
-                onFailure = { _uiState.update { s -> s.copy(error = it.message) } },
+                onFailure = { /* Endpoint not available yet — show empty list, allow direct scan */ },
             )
         }
     }
@@ -87,8 +87,8 @@ class CheckInViewModel @Inject constructor(
                     onSuccess = { projects ->
                         _uiState.update { it.copy(allCheckedOut = projects, showAllJobs = true, isLoading = false) }
                     },
-                    onFailure = { e ->
-                        _uiState.update { it.copy(error = e.message, isLoading = false) }
+                    onFailure = {
+                        _uiState.update { it.copy(isLoading = false) }
                     },
                 )
             }
