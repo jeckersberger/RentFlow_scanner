@@ -88,11 +88,11 @@
     <string name="rfid_overwrite_existing">Tag enthält bereits Daten:</string>
     <string name="rfid_overwrite_confirm">Soll der Tag überschrieben werden?</string>
     <string name="rfid_overwrite_button">Überschreiben</string>
-    <string name="rfid_write_success">RFID-Tag erfolgreich geschrieben</string>
-    <string name="rfid_write_verified">Verifiziert: Tag-Inhalt stimmt überein</string>
+    <string name="rfid_write_success">RFID-Tag erfolgreich zugeordnet</string>
+    <string name="rfid_write_verified">TID gespeichert und verifiziert</string>
     <string name="rfid_write_not_verified">Verifikation ausstehend</string>
     <string name="rfid_write_failed">RFID-Schreibvorgang fehlgeschlagen</string>
-    <string name="rfid_writing">Schreibe…</string>
+    <string name="rfid_writing">Tag wird gelesen…</string>
     <string name="lock_title">Sitzung gesperrt</string>
     <string name="lock_subtitle">Bitte erneut anmelden</string>
     <string name="lock_unlock">Entsperren</string>

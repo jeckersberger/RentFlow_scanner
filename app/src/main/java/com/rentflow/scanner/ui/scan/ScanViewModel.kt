@@ -98,6 +98,23 @@ class ScanViewModel @Inject constructor(
         }
     }
 
+    fun onRfidTagTapped(identifier: String) {
+        // Try to resolve this RFID tag (TID or EPC) as equipment
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null, lastBarcode = identifier) }
+            scannerRepository.resolveBarcode(identifier).fold(
+                onSuccess = { equipment ->
+                    scanFeedback.onScanSuccess()
+                    _uiState.update { it.copy(isLoading = false, equipment = equipment) }
+                },
+                onFailure = {
+                    // Tag not linked to equipment yet — show as unlinked
+                    _uiState.update { it.copy(isLoading = false, error = "Tag nicht zugeordnet: $identifier") }
+                },
+            )
+        }
+    }
+
     fun onBarcodeScanned(barcode: String) {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null, lastBarcode = barcode) }

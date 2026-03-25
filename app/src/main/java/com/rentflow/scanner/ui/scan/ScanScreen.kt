@@ -163,7 +163,11 @@ fun ScanScreen(
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
                         items(state.rfidTags) { tag ->
-                            Card(modifier = Modifier.fillMaxWidth()) {
+                            val identifier = tag.tid.ifBlank { tag.epc }
+                            Card(
+                                onClick = { viewModel.onRfidTagTapped(identifier) },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
                                 Row(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -187,11 +191,19 @@ fun ScanScreen(
                                             )
                                         }
                                     }
-                                    Text(
-                                        "${tag.rssi} dBm",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
+                                    Column(horizontalAlignment = Alignment.End) {
+                                        Text(
+                                            "${tag.rssi} dBm",
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                        Icon(
+                                            Icons.Default.TouchApp,
+                                            contentDescription = null,
+                                            tint = Cyan.copy(alpha = 0.5f),
+                                            modifier = Modifier.size(16.dp),
+                                        )
+                                    }
                                 }
                             }
                         }
