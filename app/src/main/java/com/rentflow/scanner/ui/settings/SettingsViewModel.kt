@@ -8,11 +8,17 @@ import com.rentflow.scanner.data.service.AppUpdateService
 import com.rentflow.scanner.data.service.DownloadState
 import com.rentflow.scanner.data.service.UpdateInfo
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.net.HttpURLConnection
+import java.net.URL
 import javax.inject.Inject
+
+enum class ConnectionStatus { UNKNOWN, CHECKING, CONNECTED, FAILED }
 
 data class SettingsUiState(
     val serverUrl: String = "",
@@ -21,6 +27,7 @@ data class SettingsUiState(
     val lockTimeoutMinutes: Int = 30,
     val fullReloginHours: Int = 4,
     val saved: Boolean = false,
+    val connectionStatus: ConnectionStatus = ConnectionStatus.UNKNOWN,
     val updateInfo: UpdateInfo? = null,
     val isCheckingUpdate: Boolean = false,
     val downloadState: DownloadState = DownloadState.IDLE,
@@ -102,6 +109,34 @@ class SettingsViewModel @Inject constructor(
             // Apply language change immediately
             RentFlowScannerApp.applyLanguage(_uiState.value.language)
             _uiState.update { it.copy(saved = true) }
+        }
+    }
+
+    fun checkConnection() {
+        val url = _uiState.value.serverUrl.trim()
+        if (url.isBlank()) {
+            _uiState.update { it.copy(connectionStatus = ConnectionStatus.FAILED) }
+            return
+        }
+        viewModelScope.launch {
+            _uiState.update { it.copy(connectionStatus = ConnectionStatus.CHECKING) }
+            val result = withContext(Dispatchers.IO) {
+                try {
+                    val base = if (url.endsWith("/")) url else "$url/"
+                    val conn = URL("${base}api/v1/auth/me").openConnection() as HttpURLConnection
+                    conn.connectTimeout = 5000
+                    conn.readTimeout = 5000
+                    conn.requestMethod = "GET"
+                    val code = conn.responseCode
+                    conn.disconnect()
+                    code in 200..499 // Any response means server is reachable
+                } catch (_: Exception) {
+                    false
+                }
+            }
+            _uiState.update {
+                it.copy(connectionStatus = if (result) ConnectionStatus.CONNECTED else ConnectionStatus.FAILED)
+            }
         }
     }
 

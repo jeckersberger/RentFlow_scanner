@@ -5,10 +5,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.QrCodeScanner
-import androidx.compose.material.icons.filled.Sensors
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -17,6 +17,7 @@ import com.rentflow.scanner.BuildConfig
 import com.rentflow.scanner.R
 import com.rentflow.scanner.data.preferences.SettingsDataStore
 import com.rentflow.scanner.data.service.DownloadState
+import com.rentflow.scanner.ui.theme.Success
 import com.rentflow.scanner.ui.components.UpdateBanner
 import com.rentflow.scanner.ui.theme.Cyan
 import com.rentflow.scanner.ui.theme.Success
@@ -42,13 +43,27 @@ fun SettingsScreen(
         },
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp).verticalScroll(rememberScrollState())) {
-            OutlinedTextField(
-                value = state.serverUrl,
-                onValueChange = viewModel::onServerUrlChange,
-                label = { Text(stringResource(R.string.settings_server_url)) },
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
-            )
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                OutlinedTextField(
+                    value = state.serverUrl,
+                    onValueChange = viewModel::onServerUrlChange,
+                    label = { Text(stringResource(R.string.settings_server_url)) },
+                    modifier = Modifier.weight(1f),
+                    singleLine = true,
+                )
+                Spacer(Modifier.width(8.dp))
+                IconButton(onClick = viewModel::checkConnection) {
+                    when (state.connectionStatus) {
+                        ConnectionStatus.CHECKING -> CircularProgressIndicator(modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                        ConnectionStatus.CONNECTED -> Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Success)
+                        ConnectionStatus.FAILED -> Icon(Icons.Default.Cancel, contentDescription = null, tint = com.rentflow.scanner.ui.theme.Error)
+                        ConnectionStatus.UNKNOWN -> Icon(Icons.Default.Wifi, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                }
+            }
             Spacer(Modifier.height(16.dp))
             Text(stringResource(R.string.settings_language), style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(8.dp))
