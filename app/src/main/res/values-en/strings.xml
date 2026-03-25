@@ -147,6 +147,11 @@
     <string name="inventory_status_unexpected">Unexpected</string>
     <string name="findme_searching">Someone is looking for this scanner</string>
     <string name="findme_stop">Found!</string>
+    <string name="equipment_history">Scan History</string>
+    <string name="equipment_no_history">No history available</string>
+    <string name="equipment_locate">Locate Equipment</string>
+    <string name="equipment_locating">Searching…</string>
+    <string name="equipment_signal_strength">Signal Strength</string>
     <string name="spontan">AD-HOC</string>
     <string name="saved">Saved</string>
 </resources>

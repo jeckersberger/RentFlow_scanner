@@ -1,14 +1,17 @@
 package com.rentflow.scanner.ui.checkin
 
+import android.content.Context
 import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rentflow.scanner.data.hardware.HardwareScanner
+import com.rentflow.scanner.data.util.ImageCompressor
 import com.rentflow.scanner.data.repository.ProjectRepository
 import com.rentflow.scanner.data.repository.ScannerRepository
 import com.rentflow.scanner.domain.model.Equipment
 import com.rentflow.scanner.domain.model.Project
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -37,6 +40,7 @@ data class CheckInUiState(
 
 @HiltViewModel
 class CheckInViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val scannerRepository: ScannerRepository,
     private val projectRepository: ProjectRepository,
     private val hardwareScanner: HardwareScanner,
@@ -138,9 +142,11 @@ class CheckInViewModel @Inject constructor(
             _uiState.update { it.copy(photoTargetIndex = -1) }
             return
         }
+        // Compress photo to max 1920px, 80% JPEG quality
+        val compressed = ImageCompressor.compressPhoto(context, uri) ?: uri
         _uiState.update {
             val items = it.scannedItems.toMutableList()
-            if (index in items.indices) items[index] = items[index].copy(photoUri = uri)
+            if (index in items.indices) items[index] = items[index].copy(photoUri = compressed)
             it.copy(scannedItems = items, photoTargetIndex = -1)
         }
     }

@@ -84,6 +84,32 @@ fun SettingsScreen(
                 )
             }
             Spacer(Modifier.height(24.dp))
+            Text(stringResource(R.string.settings_session_timeout), style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.height(8.dp))
+            Text(stringResource(R.string.settings_lock_after), style = MaterialTheme.typography.bodyMedium)
+            Spacer(Modifier.height(4.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(5, 10, 15, 30, 60).forEach { minutes ->
+                    FilterChip(
+                        selected = state.lockTimeoutMinutes == minutes,
+                        onClick = { viewModel.onLockTimeoutChange(minutes) },
+                        label = { Text(stringResource(R.string.settings_minutes, minutes)) },
+                    )
+                }
+            }
+            Spacer(Modifier.height(12.dp))
+            Text(stringResource(R.string.settings_relogin_after), style = MaterialTheme.typography.bodyMedium)
+            Spacer(Modifier.height(4.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(1, 2, 4, 8).forEach { hours ->
+                    FilterChip(
+                        selected = state.fullReloginHours == hours,
+                        onClick = { viewModel.onFullReloginChange(hours) },
+                        label = { Text(stringResource(R.string.settings_hours, hours)) },
+                    )
+                }
+            }
+            Spacer(Modifier.height(24.dp))
             Button(
                 onClick = viewModel::save,
                 modifier = Modifier.fillMaxWidth().height(56.dp),

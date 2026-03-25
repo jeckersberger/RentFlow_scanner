@@ -1,17 +1,23 @@
 package com.rentflow.scanner.data.service
 
+import com.rentflow.scanner.data.preferences.SettingsDataStore
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
-class SessionTimeoutManager @Inject constructor() {
+class SessionTimeoutManager @Inject constructor(
+    private val settingsDataStore: SettingsDataStore,
+) {
 
-    companion object {
-        private const val LOCK_TIMEOUT_MS = 30 * 60 * 1000L // 30 minutes
-        private const val FULL_RELOGIN_TIMEOUT_MS = 4 * 60 * 60 * 1000L // 4 hours
-    }
+    private val lockTimeoutMs: Long
+        get() = runBlocking { settingsDataStore.lockTimeoutMinutes.first() } * 60 * 1000L
+
+    private val fullReloginTimeoutMs: Long
+        get() = runBlocking { settingsDataStore.fullReloginHours.first() } * 60 * 60 * 1000L
 
     private var lastActivityTimestamp: Long = System.currentTimeMillis()
     private var backgroundTimestamp: Long = 0L
@@ -30,8 +36,8 @@ class SessionTimeoutManager @Inject constructor() {
         backgroundTimestamp = 0L
 
         when {
-            elapsed >= FULL_RELOGIN_TIMEOUT_MS -> _lockState.value = LockState.FULL_RELOGIN
-            elapsed >= LOCK_TIMEOUT_MS -> _lockState.value = LockState.LOCKED
+            elapsed >= fullReloginTimeoutMs -> _lockState.value = LockState.FULL_RELOGIN
+            elapsed >= lockTimeoutMs -> _lockState.value = LockState.LOCKED
         }
     }
 
@@ -42,7 +48,7 @@ class SessionTimeoutManager @Inject constructor() {
     fun checkInactivity() {
         if (_lockState.value != LockState.UNLOCKED) return
         val elapsed = System.currentTimeMillis() - lastActivityTimestamp
-        if (elapsed >= LOCK_TIMEOUT_MS) {
+        if (elapsed >= lockTimeoutMs) {
             _lockState.value = LockState.LOCKED
         }
     }

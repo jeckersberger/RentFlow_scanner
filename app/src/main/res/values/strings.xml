@@ -147,6 +147,16 @@
     <string name="inventory_status_unexpected">Unerwartet</string>
     <string name="findme_searching">Jemand sucht diesen Scanner</string>
     <string name="findme_stop">Gefunden!</string>
+    <string name="equipment_history">Scan-Historie</string>
+    <string name="equipment_no_history">Keine Historie verfügbar</string>
+    <string name="equipment_locate">Equipment orten</string>
+    <string name="equipment_locating">Suche…</string>
+    <string name="equipment_signal_strength">Signalstärke</string>
     <string name="spontan">SPONTAN</string>
     <string name="saved">Gespeichert</string>
+    <string name="settings_session_timeout">Session-Timeout</string>
+    <string name="settings_lock_after">Sperren nach</string>
+    <string name="settings_relogin_after">Neu-Login nach</string>
+    <string name="settings_minutes">%1$d Min</string>
+    <string name="settings_hours">%1$d Std</string>
 </resources>

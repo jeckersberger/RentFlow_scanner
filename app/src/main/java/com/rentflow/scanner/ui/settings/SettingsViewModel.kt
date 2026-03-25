@@ -18,6 +18,8 @@ data class SettingsUiState(
     val serverUrl: String = "",
     val language: String = "de",
     val scanMode: String = "barcode",
+    val lockTimeoutMinutes: Int = 30,
+    val fullReloginHours: Int = 4,
     val saved: Boolean = false,
     val updateInfo: UpdateInfo? = null,
     val isCheckingUpdate: Boolean = false,
@@ -49,6 +51,16 @@ class SettingsViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
+            settingsDataStore.lockTimeoutMinutes.collect { minutes ->
+                _uiState.update { it.copy(lockTimeoutMinutes = minutes) }
+            }
+        }
+        viewModelScope.launch {
+            settingsDataStore.fullReloginHours.collect { hours ->
+                _uiState.update { it.copy(fullReloginHours = hours) }
+            }
+        }
+        viewModelScope.launch {
             updateService.updateAvailable.collect { info ->
                 _uiState.update { it.copy(updateInfo = info) }
             }
@@ -72,11 +84,21 @@ class SettingsViewModel @Inject constructor(
         _uiState.update { it.copy(scanMode = mode, saved = false) }
     }
 
+    fun onLockTimeoutChange(minutes: Int) {
+        _uiState.update { it.copy(lockTimeoutMinutes = minutes, saved = false) }
+    }
+
+    fun onFullReloginChange(hours: Int) {
+        _uiState.update { it.copy(fullReloginHours = hours, saved = false) }
+    }
+
     fun save() {
         viewModelScope.launch {
             settingsDataStore.setServerUrl(_uiState.value.serverUrl)
             settingsDataStore.setLanguage(_uiState.value.language)
             settingsDataStore.setScanMode(_uiState.value.scanMode)
+            settingsDataStore.setLockTimeout(_uiState.value.lockTimeoutMinutes)
+            settingsDataStore.setFullReloginTimeout(_uiState.value.fullReloginHours)
             // Apply language change immediately
             RentFlowScannerApp.applyLanguage(_uiState.value.language)
             _uiState.update { it.copy(saved = true) }

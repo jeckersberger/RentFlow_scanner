@@ -9,8 +9,11 @@ import com.rentflow.scanner.data.hardware.RfidWriteResult
 import com.rentflow.scanner.data.repository.ScannerRepository
 import com.rentflow.scanner.data.repository.WarehouseRepository
 import com.rentflow.scanner.domain.model.Equipment
+import com.rentflow.scanner.domain.model.ScanResult
+import com.rentflow.scanner.domain.model.ScanType
 import com.rentflow.scanner.domain.model.WarehouseZone
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
@@ -28,6 +31,9 @@ data class EquipmentDetailUiState(
     val showOverwriteDialog: Boolean = false,
     val existingTagEpc: String? = null,
     val rfidVerified: Boolean = false,
+    val history: List<ScanResult> = emptyList(),
+    val isLocating: Boolean = false,
+    val rssiValue: Int = 0,
 )
 
 @HiltViewModel
@@ -41,9 +47,12 @@ class EquipmentDetailViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(EquipmentDetailUiState())
     val uiState: StateFlow<EquipmentDetailUiState> = _uiState
 
+    private var locatingJob: Job? = null
+
     init {
         loadEquipment()
         loadZones()
+        loadHistory()
     }
 
     private fun loadEquipment() {
@@ -62,6 +71,60 @@ class EquipmentDetailViewModel @Inject constructor(
                 _uiState.update { it.copy(zones = zones) }
             }
         }
+    }
+
+    private fun loadHistory() {
+        viewModelScope.launch {
+            scannerRepository.getScanHistory(barcode).onSuccess { history ->
+                if (history.isEmpty()) {
+                    // Demo mode: generate fake history entries
+                    val now = System.currentTimeMillis()
+                    val demoHistory = listOf(
+                        ScanResult(
+                            id = "demo-h1",
+                            barcode = barcode,
+                            equipment = null,
+                            timestamp = now - 86_400_000L * 2,
+                            scanType = ScanType.OUT,
+                        ),
+                        ScanResult(
+                            id = "demo-h2",
+                            barcode = barcode,
+                            equipment = null,
+                            timestamp = now - 86_400_000L,
+                            scanType = ScanType.IN,
+                        ),
+                        ScanResult(
+                            id = "demo-h3",
+                            barcode = barcode,
+                            equipment = null,
+                            timestamp = now - 3_600_000L,
+                            scanType = ScanType.INVENTORY,
+                        ),
+                    )
+                    _uiState.update { it.copy(history = demoHistory) }
+                } else {
+                    _uiState.update { it.copy(history = history) }
+                }
+            }
+        }
+    }
+
+    fun startLocating() {
+        _uiState.update { it.copy(isLocating = true, rssiValue = 0) }
+        hardwareScanner.startRfidRead()
+        locatingJob = viewModelScope.launch {
+            hardwareScanner.rfidReadEvents.collect { event ->
+                _uiState.update { it.copy(rssiValue = event.rssi) }
+            }
+        }
+    }
+
+    fun stopLocating() {
+        locatingJob?.cancel()
+        locatingJob = null
+        hardwareScanner.stopRfid()
+        _uiState.update { it.copy(isLocating = false, rssiValue = 0) }
     }
 
     fun updateLocation(newLocation: String) {

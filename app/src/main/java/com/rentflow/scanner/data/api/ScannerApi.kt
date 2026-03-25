@@ -45,4 +45,7 @@ interface ScannerApi {
 
     @PUT("api/v1/scan/equipment/{id}/location")
     suspend fun updateLocation(@Path("id") id: String, @Body body: Map<String, String>): Response<ApiResponse<Unit>>
+
+    @GET("api/v1/scan/history")
+    suspend fun scanHistory(@Query("barcode") barcode: String): Response<ApiResponse<List<ScanResult>>>
 }

@@ -162,6 +162,22 @@ class ScannerRepository @Inject constructor(
         }
     }
 
+    suspend fun getScanHistory(barcode: String): Result<List<ScanResult>> {
+        if (tokenManager.getAccessToken() == "demo-access-token") {
+            return Result.success(emptyList())
+        }
+        return try {
+            val response = scannerApi.scanHistory(barcode)
+            if (response.isSuccessful && response.body()?.data != null) {
+                Result.success(response.body()!!.data!!)
+            } else {
+                Result.success(emptyList())
+            }
+        } catch (e: Exception) {
+            Result.success(emptyList())
+        }
+    }
+
     private suspend fun queueOffline(barcode: String, scanType: String, projectId: String?, notes: String?) {
         pendingScanDao.insert(
             PendingScanEntity(
