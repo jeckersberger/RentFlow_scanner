@@ -159,4 +159,20 @@
     <string name="settings_relogin_after">Neu-Login nach</string>
     <string name="settings_minutes">%1$d Min</string>
     <string name="settings_hours">%1$d Std</string>
+    <string name="condition_ok">OK</string>
+    <string name="condition_damaged">Beschädigt</string>
+    <string name="condition_defective">Defekt</string>
+    <string name="checkin_add_photo">Foto hinzufügen</string>
+    <string name="checkin_max_photos">Max. 5 Fotos</string>
+    <string name="signature_title">Unterschrift</string>
+    <string name="signature_hint">Hier unterschreiben</string>
+    <string name="signature_clear">Löschen</string>
+    <string name="signature_confirm">Unterschrift bestätigen</string>
+    <string name="checkout_progress">Gescannt: %1$d / Soll: %2$d</string>
+    <string name="checkout_packing_list">Packliste</string>
+    <string name="checkout_show_list">Packliste anzeigen</string>
+    <string name="checkout_hide_list">Packliste ausblenden</string>
+    <string name="checkout_location">Lagerplatz: %1$s</string>
+    <string name="checkin_auto_detected">Rückgabe für Job \"%1$s\" erkannt</string>
+    <string name="checkin_progress">Zurückgegeben: %1$d / Soll: %2$d</string>
 </resources>

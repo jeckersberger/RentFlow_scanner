@@ -1,5 +1,6 @@
 package com.rentflow.scanner.ui.checkout
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -20,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.rentflow.scanner.R
 import com.rentflow.scanner.ui.components.EquipmentCard
+import com.rentflow.scanner.ui.components.SignatureCanvas
 import com.rentflow.scanner.ui.theme.Cyan
 import com.rentflow.scanner.ui.theme.Error
 import com.rentflow.scanner.ui.theme.Warning
@@ -35,6 +37,25 @@ fun CheckOutScreen(
 
     LaunchedEffect(state.completed) {
         if (state.completed) onCompleted()
+    }
+
+    // Signature dialog
+    if (state.showSignature) {
+        AlertDialog(
+            onDismissRequest = viewModel::dismissSignature,
+            title = { Text(stringResource(R.string.signature_title)) },
+            text = {
+                SignatureCanvas(
+                    onSignatureComplete = { bitmap -> viewModel.completeWithSignature(bitmap) },
+                )
+            },
+            confirmButton = {},
+            dismissButton = {
+                OutlinedButton(onClick = viewModel::dismissSignature) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
     }
 
     // Ad-hoc confirmation dialog
@@ -131,6 +152,94 @@ fun CheckOutScreen(
                 Text("${stringResource(R.string.checkout_title)}: ${state.selectedProject!!.name}", style = MaterialTheme.typography.titleLarge)
                 Spacer(Modifier.height(4.dp))
 
+                // Progress bar
+                if (state.expectedItems.isNotEmpty()) {
+                    val scanned = state.scannedItems.size
+                    val expected = state.expectedItems.size
+                    val progress = if (expected > 0) scanned.toFloat() / expected else 0f
+                    Text(
+                        stringResource(R.string.checkout_progress, scanned, expected),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (scanned >= expected) Cyan else MaterialTheme.colorScheme.onSurface,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    LinearProgressIndicator(
+                        progress = { progress.coerceIn(0f, 1f) },
+                        modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
+                        color = if (scanned >= expected) Cyan else MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                    )
+                    Spacer(Modifier.height(8.dp))
+
+                    // Packing list toggle
+                    var packingListExpanded by remember { mutableStateOf(false) }
+                    val scannedIds = state.scannedItems.map { it.id }.toSet()
+
+                    FilledTonalButton(
+                        onClick = { packingListExpanded = !packingListExpanded },
+                        modifier = Modifier.fillMaxWidth(),
+                    ) {
+                        Icon(
+                            if (packingListExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                            contentDescription = null,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(Modifier.width(6.dp))
+                        Text(
+                            if (packingListExpanded) stringResource(R.string.checkout_hide_list)
+                            else stringResource(R.string.checkout_show_list)
+                        )
+                    }
+
+                    AnimatedVisibility(visible = packingListExpanded) {
+                        Card(
+                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                        ) {
+                            Column(modifier = Modifier.padding(12.dp)) {
+                                Text(
+                                    stringResource(R.string.checkout_packing_list),
+                                    style = MaterialTheme.typography.titleSmall,
+                                    fontWeight = FontWeight.Bold,
+                                )
+                                Spacer(Modifier.height(8.dp))
+                                state.expectedItems.forEach { item ->
+                                    val isScanned = item.id in scannedIds
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                    ) {
+                                        Icon(
+                                            if (isScanned) Icons.Default.CheckCircle else Icons.Default.RadioButtonUnchecked,
+                                            contentDescription = null,
+                                            tint = if (isScanned) Cyan else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            modifier = Modifier.size(20.dp),
+                                        )
+                                        Spacer(Modifier.width(8.dp))
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                item.name,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                fontWeight = if (isScanned) FontWeight.Normal else FontWeight.Bold,
+                                                color = if (isScanned) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                                            )
+                                            item.location?.let { loc ->
+                                                Text(
+                                                    stringResource(R.string.checkout_location, loc),
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(8.dp))
+                }
+
                 // RFID bulk indicator
                 if (state.isRfidBulkActive) {
                     Card(
@@ -184,7 +293,7 @@ fun CheckOutScreen(
                 if (state.scannedItems.isNotEmpty()) {
                     Spacer(Modifier.height(16.dp))
                     Button(
-                        onClick = viewModel::completeCheckOut,
+                        onClick = viewModel::requestSignature,
                         enabled = !state.isLoading,
                         modifier = Modifier.fillMaxWidth().height(56.dp),
                     ) {

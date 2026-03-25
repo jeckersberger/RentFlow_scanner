@@ -6,6 +6,7 @@ import com.rentflow.scanner.data.hardware.HardwareScanner
 import com.rentflow.scanner.data.repository.ProjectRepository
 import com.rentflow.scanner.data.repository.ScannerRepository
 import com.rentflow.scanner.domain.model.Equipment
+import com.rentflow.scanner.domain.model.EquipmentStatus
 import com.rentflow.scanner.domain.model.Project
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -31,6 +32,7 @@ data class CheckOutUiState(
     val showAllJobs: Boolean = false,
     val selectedProject: Project? = null,
     val expectedEquipmentIds: Set<String> = emptySet(),
+    val expectedItems: List<Equipment> = emptyList(),
     val scannedItems: List<Equipment> = emptyList(),
     val sessionId: String? = null,
     val isLoading: Boolean = false,
@@ -39,6 +41,7 @@ data class CheckOutUiState(
     val adHocEquipment: Equipment? = null,
     val isRfidBulkActive: Boolean = false,
     val rfidResolving: Set<String> = emptySet(),
+    val showSignature: Boolean = false,
 )
 
 @HiltViewModel
@@ -121,9 +124,14 @@ class CheckOutViewModel @Inject constructor(
             projectRepository.listProjectEquipment(project.id).fold(
                 onSuccess = { equipment ->
                     val ids = equipment.map { it.id }.toSet()
-                    _uiState.update { it.copy(expectedEquipmentIds = ids) }
+                    _uiState.update { it.copy(expectedEquipmentIds = ids, expectedItems = equipment) }
                 },
-                onFailure = { /* No equipment list available */ },
+                onFailure = {
+                    // Demo mode: generate sample expected items
+                    val demoItems = generateDemoExpectedItems(project.name)
+                    val ids = demoItems.map { it.id }.toSet()
+                    _uiState.update { s -> s.copy(expectedEquipmentIds = ids, expectedItems = demoItems) }
+                },
             )
             scannerRepository.createSession("out", project.id).fold(
                 onSuccess = { session -> _uiState.update { it.copy(sessionId = session.id, isLoading = false) } },
@@ -210,7 +218,23 @@ class CheckOutViewModel @Inject constructor(
         _uiState.update { it.copy(scannedItems = it.scannedItems - equipment) }
     }
 
-    fun completeCheckOut() {
+    fun requestSignature() {
+        _uiState.update { it.copy(showSignature = true) }
+    }
+
+    fun dismissSignature() {
+        _uiState.update { it.copy(showSignature = false) }
+    }
+
+    fun completeWithSignature(signatureBitmap: android.graphics.Bitmap?) {
+        val state = _uiState.value
+        if (state.sessionId == null) return
+        _uiState.update { it.copy(showSignature = false) }
+        // TODO: Upload signature bitmap to server when backend available
+        completeCheckOut()
+    }
+
+    private fun completeCheckOut() {
         val state = _uiState.value
         if (state.sessionId == null) return
         viewModelScope.launch {
@@ -222,6 +246,23 @@ class CheckOutViewModel @Inject constructor(
             scannerRepository.endSession(state.sessionId).fold(
                 onSuccess = { _uiState.update { it.copy(isLoading = false, completed = true) } },
                 onFailure = { e -> _uiState.update { it.copy(isLoading = false, error = e.message) } },
+            )
+        }
+    }
+
+    private fun generateDemoExpectedItems(projectName: String): List<Equipment> {
+        val names = listOf("PAR-64 #1", "Moving Head #1", "Mischpult CL5", "XLR Kabel 15m", "Stativ #3")
+        return names.mapIndexed { i, name ->
+            Equipment(
+                id = "expected-$i",
+                barcode = "EQ-${String.format("%04d", i + 1)}",
+                name = name,
+                category = "Veranstaltungstechnik",
+                status = EquipmentStatus.AVAILABLE,
+                location = "Regal A${i + 1}",
+                projectName = null,
+                rfidTag = null,
+                imageUrl = null,
             )
         }
     }

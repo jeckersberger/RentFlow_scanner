@@ -159,4 +159,20 @@
     <string name="settings_relogin_after">Re-login after</string>
     <string name="settings_minutes">%1$d min</string>
     <string name="settings_hours">%1$d hrs</string>
+    <string name="condition_ok">OK</string>
+    <string name="condition_damaged">Damaged</string>
+    <string name="condition_defective">Defective</string>
+    <string name="checkin_add_photo">Add photo</string>
+    <string name="checkin_max_photos">Max. 5 photos</string>
+    <string name="signature_title">Signature</string>
+    <string name="signature_hint">Sign here</string>
+    <string name="signature_clear">Clear</string>
+    <string name="signature_confirm">Confirm signature</string>
+    <string name="checkout_progress">Scanned: %1$d / Expected: %2$d</string>
+    <string name="checkout_packing_list">Packing List</string>
+    <string name="checkout_show_list">Show packing list</string>
+    <string name="checkout_hide_list">Hide packing list</string>
+    <string name="checkout_location">Storage: %1$s</string>
+    <string name="checkin_auto_detected">Return for job \"%1$s\" detected</string>
+    <string name="checkin_progress">Returned: %1$d / Expected: %2$d</string>
 </resources>

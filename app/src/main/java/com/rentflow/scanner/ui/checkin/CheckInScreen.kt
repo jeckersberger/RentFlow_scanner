@@ -28,6 +28,8 @@ import coil.compose.AsyncImage
 import com.rentflow.scanner.R
 import com.rentflow.scanner.domain.model.Project
 import com.rentflow.scanner.ui.theme.Cyan
+import com.rentflow.scanner.ui.theme.Error
+import com.rentflow.scanner.ui.theme.Success
 import com.rentflow.scanner.ui.theme.Warning
 import java.io.File
 
@@ -59,6 +61,32 @@ fun CheckInScreen(
             photoUri = uri
             cameraLauncher.launch(uri)
         }
+    }
+
+    // Auto-detection dialog
+    state.autoDetectedProject?.let { project ->
+        AlertDialog(
+            onDismissRequest = viewModel::dismissAutoDetectedProject,
+            icon = {
+                Icon(
+                    Icons.Default.AssignmentReturn,
+                    contentDescription = null,
+                    tint = Cyan,
+                    modifier = Modifier.size(32.dp),
+                )
+            },
+            title = { Text(stringResource(R.string.checkin_auto_detected, project.name)) },
+            confirmButton = {
+                Button(onClick = viewModel::confirmAutoDetectedProject) {
+                    Text(stringResource(R.string.confirm))
+                }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = viewModel::dismissAutoDetectedProject) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
     }
 
     Scaffold(
@@ -129,11 +157,33 @@ fun CheckInScreen(
                     style = MaterialTheme.typography.titleLarge,
                 )
                 Spacer(Modifier.height(8.dp))
-                Text(
-                    stringResource(R.string.checkin_items_scanned, state.scannedItems.size),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+
+                // Progress display
+                if (state.expectedReturnCount > 0) {
+                    val scanned = state.scannedItems.size
+                    val expected = state.expectedReturnCount
+                    val progress = scanned.toFloat() / expected
+                    Text(
+                        stringResource(R.string.checkin_progress, scanned, expected),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold,
+                        color = if (scanned >= expected) Cyan else MaterialTheme.colorScheme.onSurface,
+                    )
+                    Spacer(Modifier.height(4.dp))
+                    LinearProgressIndicator(
+                        progress = { progress.coerceIn(0f, 1f) },
+                        modifier = Modifier.fillMaxWidth().height(8.dp).clip(RoundedCornerShape(4.dp)),
+                        color = if (scanned >= expected) Cyan else MaterialTheme.colorScheme.primary,
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                } else {
+                    Text(
+                        stringResource(R.string.checkin_items_scanned, state.scannedItems.size),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 Spacer(Modifier.height(16.dp))
 
                 LazyColumn(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -143,6 +193,7 @@ fun CheckInScreen(
                             onConditionChange = { viewModel.updateCondition(index, it) },
                             onNotesChange = { viewModel.updateNotes(index, it) },
                             onPhoto = { viewModel.requestPhoto(index) },
+                            onRemovePhoto = { photoIndex -> viewModel.removePhoto(index, photoIndex) },
                             onRemove = { viewModel.removeItem(index) },
                         )
                     }
@@ -166,12 +217,14 @@ fun CheckInScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CheckInItemCard(
     item: CheckInItem,
-    onConditionChange: (Int) -> Unit,
+    onConditionChange: (ItemCondition) -> Unit,
     onNotesChange: (String) -> Unit,
     onPhoto: () -> Unit,
+    onRemovePhoto: (Int) -> Unit,
     onRemove: () -> Unit,
 ) {
     Card(modifier = Modifier.fillMaxWidth()) {
@@ -192,35 +245,48 @@ private fun CheckInItemCard(
 
             Spacer(Modifier.height(8.dp))
 
-            // Star rating
+            // Condition chips
             Text(stringResource(R.string.checkin_condition), style = MaterialTheme.typography.bodyMedium)
-            Row {
-                (1..5).forEach { star ->
-                    IconButton(
-                        onClick = { onConditionChange(star) },
-                        modifier = Modifier.size(40.dp),
-                    ) {
-                        Icon(
-                            if (star <= item.condition) Icons.Default.Star else Icons.Default.StarBorder,
-                            contentDescription = null,
-                            tint = Warning,
-                            modifier = Modifier.size(28.dp),
-                        )
-                    }
-                }
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    when (item.condition) {
-                        1 -> stringResource(R.string.checkin_condition_1)
-                        2 -> stringResource(R.string.checkin_condition_2)
-                        3 -> stringResource(R.string.checkin_condition_3)
-                        4 -> stringResource(R.string.checkin_condition_4)
-                        5 -> stringResource(R.string.checkin_condition_5)
-                        else -> ""
+            Spacer(Modifier.height(4.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                FilterChip(
+                    selected = item.condition == ItemCondition.OK,
+                    onClick = { onConditionChange(ItemCondition.OK) },
+                    label = { Text(stringResource(R.string.condition_ok)) },
+                    leadingIcon = {
+                        Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(18.dp))
                     },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.align(Alignment.CenterVertically),
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Success.copy(alpha = 0.2f),
+                        selectedLabelColor = Success,
+                        selectedLeadingIconColor = Success,
+                    ),
+                )
+                FilterChip(
+                    selected = item.condition == ItemCondition.DAMAGED,
+                    onClick = { onConditionChange(ItemCondition.DAMAGED) },
+                    label = { Text(stringResource(R.string.condition_damaged)) },
+                    leadingIcon = {
+                        Icon(Icons.Default.Warning, contentDescription = null, modifier = Modifier.size(18.dp))
+                    },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Warning.copy(alpha = 0.2f),
+                        selectedLabelColor = Warning,
+                        selectedLeadingIconColor = Warning,
+                    ),
+                )
+                FilterChip(
+                    selected = item.condition == ItemCondition.DEFECTIVE,
+                    onClick = { onConditionChange(ItemCondition.DEFECTIVE) },
+                    label = { Text(stringResource(R.string.condition_defective)) },
+                    leadingIcon = {
+                        Icon(Icons.Default.Error, contentDescription = null, modifier = Modifier.size(18.dp))
+                    },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Error.copy(alpha = 0.2f),
+                        selectedLabelColor = Error,
+                        selectedLeadingIconColor = Error,
+                    ),
                 )
             }
 
@@ -235,28 +301,53 @@ private fun CheckInItemCard(
                 maxLines = 2,
             )
 
-            Spacer(Modifier.height(8.dp))
+            // Photos — only show when condition is DAMAGED or DEFECTIVE
+            if (item.condition == ItemCondition.DAMAGED || item.condition == ItemCondition.DEFECTIVE) {
+                Spacer(Modifier.height(8.dp))
 
-            // Photo
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                OutlinedButton(onClick = onPhoto) {
-                    Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(6.dp))
-                    Text(if (item.photoUri != null) stringResource(R.string.checkin_photo_change) else stringResource(R.string.checkin_photo))
-                }
-                item.photoUri?.let { uri ->
-                    Spacer(Modifier.width(12.dp))
-                    AsyncImage(
-                        model = uri,
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(RoundedCornerShape(8.dp))
-                            .border(1.dp, Cyan, RoundedCornerShape(8.dp)),
-                        contentScale = ContentScale.Crop,
-                    )
-                    Spacer(Modifier.width(4.dp))
-                    Icon(Icons.Default.CheckCircle, contentDescription = null, tint = Cyan, modifier = Modifier.size(18.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                ) {
+                    item.photos.forEachIndexed { photoIndex, uri ->
+                        Box(modifier = Modifier.size(48.dp)) {
+                            AsyncImage(
+                                model = uri,
+                                contentDescription = null,
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(RoundedCornerShape(8.dp))
+                                    .border(1.dp, Cyan, RoundedCornerShape(8.dp)),
+                                contentScale = ContentScale.Crop,
+                            )
+                            IconButton(
+                                onClick = { onRemovePhoto(photoIndex) },
+                                modifier = Modifier
+                                    .size(18.dp)
+                                    .align(Alignment.TopEnd),
+                            ) {
+                                Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.size(14.dp),
+                                )
+                            }
+                        }
+                    }
+                    if (item.photos.size < 5) {
+                        OutlinedButton(onClick = onPhoto, modifier = Modifier.height(48.dp)) {
+                            Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(6.dp))
+                            Text(stringResource(R.string.checkin_add_photo))
+                        }
+                    } else {
+                        Text(
+                            stringResource(R.string.checkin_max_photos),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
             }
         }
