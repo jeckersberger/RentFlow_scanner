@@ -148,10 +148,23 @@ class CfH906HardwareScanner(
                 isRfidConnected = true
                 rfidReader.SetCallBack(rfidCallback)
 
-                // Configure inventory session
-                val param = rfidReader.GetInventoryPatameter()
-                param.Session = 1
-                rfidReader.SetInventoryPatameter(param)
+                // Set maximum RF power for read + write (30 dBm)
+                try {
+                    rfidReader.SetRfPower(30)
+                    rfidReader.SetWritePower(30)
+                    Log.d(TAG, "RFID read/write power set to 30 dBm (max)")
+                } catch (e: Exception) {
+                    Log.w(TAG, "Could not set RF power: ${e.message}")
+                }
+
+                // Configure inventory session for best performance
+                try {
+                    val param = rfidReader.GetInventoryPatameter()
+                    param.Session = 1
+                    rfidReader.SetInventoryPatameter(param)
+                } catch (e: Exception) {
+                    Log.w(TAG, "Could not set inventory params: ${e.message}")
+                }
 
                 Log.d(TAG, "RFID connected, reader type: ${rfidReader.GetReaderType()}")
                 return true
