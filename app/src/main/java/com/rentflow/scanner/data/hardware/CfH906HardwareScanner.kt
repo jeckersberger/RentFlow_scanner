@@ -157,10 +157,10 @@ class CfH906HardwareScanner(
                     Log.w(TAG, "Could not set RF power: ${e.message}")
                 }
 
-                // Configure inventory session for best performance
+                // Configure inventory session — Session 0 for best weak-tag sensitivity
                 try {
                     val param = rfidReader.GetInventoryPatameter()
-                    param.Session = 1
+                    param.Session = 0 // Session 0: re-reads tags every round (better for weak tags)
                     rfidReader.SetInventoryPatameter(param)
                 } catch (e: Exception) {
                     Log.w(TAG, "Could not set inventory params: ${e.message}")
