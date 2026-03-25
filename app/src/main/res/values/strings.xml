@@ -52,6 +52,7 @@
     <string name="checkin_condition_5">Einwandfrei</string>
     <string name="inventory_title">Inventur</string>
     <string name="inventory_select_zone">Lagerbereich wählen</string>
+    <string name="inventory_select_job">Inventur-Job wählen</string>
     <string name="inventory_found">Gefunden</string>
     <string name="inventory_missing">Fehlend</string>
     <string name="inventory_unexpected">Unerwartet</string>

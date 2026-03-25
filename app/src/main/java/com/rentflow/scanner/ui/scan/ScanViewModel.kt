@@ -90,9 +90,10 @@ class ScanViewModel @Inject constructor(
             hardwareScanner.initBarcodeScan()
             _uiState.update { it.copy(isScanning = false) }
         } else {
-            // RFID mode — close ScanManager completely so barcode laser stays off
+            // RFID mode — init ScanManager in HOST mode (no laser unless startDecode called)
+            // This keeps the trigger key events flowing while preventing barcode laser
             hardwareScanner.stopBarcodeScan()
-            hardwareScanner.closeBarcodeScan()
+            hardwareScanner.initBarcodeScan() // Opens in HOST mode — trigger sends key events only
             _uiState.update { it.copy(isScanning = false) }
         }
     }

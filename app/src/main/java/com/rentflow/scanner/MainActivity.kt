@@ -104,7 +104,8 @@ class MainActivity : AppCompatActivity() {
         val mode = kotlinx.coroutines.runBlocking { settingsDataStore.scanMode.first() }
 
         if (mode == SettingsDataStore.SCAN_MODE_RFID) {
-            // RFID mode: start continuous read while trigger held
+            // RFID mode: kill any barcode decode immediately, then start RFID
+            hardwareScanner.stopBarcodeScan()
             if (!isRfidScanning) {
                 hardwareScanner.startRfidBulkRead()
                 isRfidScanning = true

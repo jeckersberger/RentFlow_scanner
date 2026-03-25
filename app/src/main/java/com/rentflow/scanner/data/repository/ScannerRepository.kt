@@ -183,6 +183,50 @@ class ScannerRepository @Inject constructor(
         }
     }
 
+    suspend fun listInventoryJobs(): Result<List<com.rentflow.scanner.data.api.InventoryJob>> {
+        return try {
+            val response = scannerApi.listInventoryJobs()
+            if (response.isSuccessful && response.body()?.data != null) {
+                Result.success(response.body()!!.data!!)
+            } else {
+                Result.success(emptyList())
+            }
+        } catch (_: Exception) {
+            Result.success(emptyList())
+        }
+    }
+
+    suspend fun getInventoryJobItems(jobId: String): Result<List<Equipment>> {
+        return try {
+            val response = scannerApi.getInventoryJobItems(jobId)
+            if (response.isSuccessful && response.body()?.data != null) {
+                Result.success(response.body()!!.data!!)
+            } else {
+                Result.success(emptyList())
+            }
+        } catch (_: Exception) {
+            Result.success(emptyList())
+        }
+    }
+
+    suspend fun completeInventoryJob(
+        jobId: String,
+        scannedBarcodes: List<String>,
+        missingBarcodes: List<String>,
+        unexpectedBarcodes: List<String>,
+    ): Result<Unit> {
+        return try {
+            val response = scannerApi.completeInventoryJob(
+                jobId,
+                com.rentflow.scanner.data.api.InventoryCompleteRequest(scannedBarcodes, missingBarcodes, unexpectedBarcodes),
+            )
+            if (response.isSuccessful) Result.success(Unit)
+            else Result.failure(Exception("Inventur konnte nicht abgeschlossen werden"))
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
     suspend fun getScanHistory(barcode: String): Result<List<ScanResult>> {
         return try {
             val response = scannerApi.scanHistory(barcode)

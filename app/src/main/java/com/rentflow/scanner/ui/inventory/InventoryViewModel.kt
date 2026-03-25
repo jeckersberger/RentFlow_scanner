@@ -6,6 +6,7 @@ import com.rentflow.scanner.data.hardware.HardwareScanner
 import com.rentflow.scanner.data.hardware.ScanFeedback
 import com.rentflow.scanner.data.preferences.SettingsDataStore
 import com.rentflow.scanner.data.repository.ScannerRepository
+import com.rentflow.scanner.data.api.InventoryJob
 import com.rentflow.scanner.data.repository.WarehouseRepository
 import com.rentflow.scanner.domain.model.Equipment
 import com.rentflow.scanner.domain.model.EquipmentStatus
@@ -19,6 +20,8 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class InventoryUiState(
+    val jobs: List<InventoryJob> = emptyList(),
+    val selectedJob: InventoryJob? = null,
     val zones: List<WarehouseZone> = emptyList(),
     val selectedZone: WarehouseZone? = null,
     val scannedItems: List<Equipment> = emptyList(),
@@ -62,6 +65,7 @@ class InventoryViewModel @Inject constructor(
     val uiState: StateFlow<InventoryUiState> = _uiState
 
     init {
+        loadJobs()
         loadZones()
         viewModelScope.launch {
             val mode = settingsDataStore.scanMode.first()
@@ -85,6 +89,35 @@ class InventoryViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         hardwareScanner.closeBarcodeScan()
+    }
+
+    private fun loadJobs() {
+        viewModelScope.launch {
+            scannerRepository.listInventoryJobs().onSuccess { jobs ->
+                _uiState.update { it.copy(jobs = jobs) }
+            }
+        }
+    }
+
+    fun selectJob(job: InventoryJob) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(selectedJob = job, isLoading = true, error = null) }
+
+            // Create session
+            val sessionResult = scannerRepository.createSession("inventory")
+            val sessionId = sessionResult.getOrNull()?.id ?: "demo-session-${job.id}"
+            _uiState.update { it.copy(sessionId = sessionId) }
+
+            // Load expected items for this job
+            scannerRepository.getInventoryJobItems(job.id).fold(
+                onSuccess = { items ->
+                    _uiState.update { it.copy(expectedItems = items, isLoading = false) }
+                },
+                onFailure = {
+                    _uiState.update { it.copy(expectedItems = emptyList(), isLoading = false) }
+                },
+            )
+        }
     }
 
     private fun loadZones() {
@@ -188,17 +221,32 @@ class InventoryViewModel @Inject constructor(
         if (state.sessionId == null) return
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            scannerRepository.endSession(state.sessionId).fold(
-                onSuccess = { _uiState.update { it.copy(isLoading = false, completed = true) } },
-                onFailure = {
-                    // In demo mode, still allow completing
-                    if (state.sessionId.startsWith("demo-session-")) {
-                        _uiState.update { it.copy(isLoading = false, completed = true) }
-                    } else {
-                        _uiState.update { s -> s.copy(isLoading = false, error = it.message) }
-                    }
-                },
-            )
+
+            // If we have a job, send results to the inventory job endpoint
+            val job = state.selectedJob
+            if (job != null) {
+                scannerRepository.completeInventoryJob(
+                    jobId = job.id,
+                    scannedBarcodes = state.foundItems.map { it.barcode },
+                    missingBarcodes = state.missingItems.map { it.barcode },
+                    unexpectedBarcodes = state.unexpectedItems.map { it.barcode },
+                ).fold(
+                    onSuccess = { _uiState.update { it.copy(isLoading = false, completed = true) } },
+                    onFailure = { e -> _uiState.update { it.copy(isLoading = false, error = e.message) } },
+                )
+            } else {
+                // Fallback: end session
+                scannerRepository.endSession(state.sessionId).fold(
+                    onSuccess = { _uiState.update { it.copy(isLoading = false, completed = true) } },
+                    onFailure = {
+                        if (state.sessionId.startsWith("demo-session-")) {
+                            _uiState.update { it.copy(isLoading = false, completed = true) }
+                        } else {
+                            _uiState.update { s -> s.copy(isLoading = false, error = it.message) }
+                        }
+                    },
+                )
+            }
         }
     }
 }

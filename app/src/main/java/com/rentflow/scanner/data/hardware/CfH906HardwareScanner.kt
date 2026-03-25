@@ -152,6 +152,7 @@ class CfH906HardwareScanner(
         }
     }
 
+
     // ==================== UHF RFID ====================
 
     private fun connectRfid(): Boolean {

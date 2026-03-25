@@ -52,6 +52,7 @@
     <string name="checkin_condition_5">Perfect</string>
     <string name="inventory_title">Inventory</string>
     <string name="inventory_select_zone">Select zone</string>
+    <string name="inventory_select_job">Select inventory job</string>
     <string name="inventory_found">Found</string>
     <string name="inventory_missing">Missing</string>
     <string name="inventory_unexpected">Unexpected</string>

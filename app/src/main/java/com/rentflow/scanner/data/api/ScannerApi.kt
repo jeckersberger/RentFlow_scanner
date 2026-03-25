@@ -51,4 +51,29 @@ interface ScannerApi {
 
     @PUT("api/v1/scan/equipment/{id}/rfid")
     suspend fun pairRfidTag(@Path("id") id: String, @Body body: Map<String, String>): Response<ApiResponse<Unit>>
+
+    @GET("api/v1/inventory/jobs")
+    suspend fun listInventoryJobs(): Response<ApiResponse<List<InventoryJob>>>
+
+    @GET("api/v1/inventory/jobs/{id}/items")
+    suspend fun getInventoryJobItems(@Path("id") id: String): Response<ApiResponse<List<Equipment>>>
+
+    @POST("api/v1/inventory/jobs/{id}/complete")
+    suspend fun completeInventoryJob(@Path("id") id: String, @Body body: InventoryCompleteRequest): Response<ApiResponse<Unit>>
 }
+
+data class InventoryJob(
+    val id: String,
+    val name: String,
+    val zone: String? = null,
+    val status: String = "open",
+    val expectedCount: Int = 0,
+    val scannedCount: Int = 0,
+    val createdAt: String? = null,
+)
+
+data class InventoryCompleteRequest(
+    val scannedBarcodes: List<String>,
+    val missingBarcodes: List<String>,
+    val unexpectedBarcodes: List<String>,
+)

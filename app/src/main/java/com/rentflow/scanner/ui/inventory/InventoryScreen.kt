@@ -54,25 +54,55 @@ fun InventoryScreen(
         },
     ) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
-            if (state.selectedZone == null) {
-                // --- Zone selection ---
-                Text(
-                    stringResource(R.string.inventory_select_zone),
-                    style = MaterialTheme.typography.titleLarge,
-                )
-                Spacer(Modifier.height(16.dp))
-                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    items(state.zones) { zone ->
-                        Card(
-                            onClick = { viewModel.selectZone(zone) },
-                            modifier = Modifier.fillMaxWidth(),
-                        ) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Text(zone.name, style = MaterialTheme.typography.bodyLarge)
-                                Text(
-                                    stringResource(R.string.inventory_soll_items, zone.expectedItemCount),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                )
+            if (state.selectedJob == null && state.selectedZone == null) {
+                // --- Job / Zone selection ---
+                if (state.jobs.isNotEmpty()) {
+                    Text(
+                        stringResource(R.string.inventory_select_job),
+                        style = MaterialTheme.typography.titleLarge,
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(state.jobs) { job ->
+                            Card(
+                                onClick = { viewModel.selectJob(job) },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Column(modifier = Modifier.padding(16.dp)) {
+                                    Text(job.name, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                                    job.zone?.let {
+                                        Text(it, style = MaterialTheme.typography.bodyMedium, color = Cyan)
+                                    }
+                                    if (job.expectedCount > 0) {
+                                        Text(
+                                            stringResource(R.string.inventory_soll_items, job.expectedCount),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    // Fallback: zone selection
+                    Text(
+                        stringResource(R.string.inventory_select_zone),
+                        style = MaterialTheme.typography.titleLarge,
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        items(state.zones) { zone ->
+                            Card(
+                                onClick = { viewModel.selectZone(zone) },
+                                modifier = Modifier.fillMaxWidth(),
+                            ) {
+                                Column(modifier = Modifier.padding(16.dp)) {
+                                    Text(zone.name, style = MaterialTheme.typography.bodyLarge)
+                                    Text(
+                                        stringResource(R.string.inventory_soll_items, zone.expectedItemCount),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                    )
+                                }
                             }
                         }
                     }
