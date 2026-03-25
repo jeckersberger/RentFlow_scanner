@@ -53,18 +53,22 @@ class CfH906HardwareScanner(
     private val _rfidReadEvents = MutableSharedFlow<RfidReadEvent>(extraBufferCapacity = 64)
     override val rfidReadEvents: Flow<RfidReadEvent> = _rfidReadEvents
 
+    private var readTidInBulk = false
+
     private val rfidCallback = object : TagCallback {
         override fun tagCallback(tag: ReadTag?) {
             tag ?: return
             val epc = tag.epcId?.uppercase() ?: return
             val rssi = tag.rssi
-            // Try to read TID (Memory Bank 2) for unique identification
-            val tid = try {
-                rfidReader.ReadData_G2(epc, 2.toByte(), 0, 6.toByte(), RFID_DEFAULT_PASSWORD)?.uppercase() ?: ""
-            } catch (e: Exception) {
-                Log.w(TAG, "Could not read TID for EPC $epc: ${e.message}")
-                ""
-            }
+            // In bulk mode: skip TID read for speed (TID is read separately during pairing)
+            val tid = if (readTidInBulk) {
+                try {
+                    rfidReader.ReadData_G2(epc, 2.toByte(), 0, 6.toByte(), RFID_DEFAULT_PASSWORD)?.uppercase() ?: ""
+                } catch (e: Exception) {
+                    Log.w(TAG, "Could not read TID for EPC $epc: ${e.message}")
+                    ""
+                }
+            } else ""
             _rfidReadEvents.tryEmit(RfidReadEvent(epc, tid, rssi))
         }
 
