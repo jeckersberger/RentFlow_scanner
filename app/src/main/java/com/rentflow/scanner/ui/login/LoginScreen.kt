@@ -93,6 +93,17 @@ fun LoginScreen(
             )
 
             OutlinedTextField(
+                value = state.serverUrl,
+                onValueChange = viewModel::onServerUrlChange,
+                label = { Text(stringResource(R.string.settings_server_url)) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("https://your-server.com") },
+            )
+            Spacer(Modifier.height(12.dp))
+
+            OutlinedTextField(
                 value = state.email,
                 onValueChange = viewModel::onEmailChange,
                 label = { Text(stringResource(R.string.login_email)) },
@@ -100,7 +111,7 @@ fun LoginScreen(
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
             )
-            Spacer(Modifier.height(16.dp))
+            Spacer(Modifier.height(12.dp))
 
             OutlinedTextField(
                 value = state.password,

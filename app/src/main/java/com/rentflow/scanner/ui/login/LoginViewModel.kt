@@ -2,6 +2,7 @@ package com.rentflow.scanner.ui.login
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.rentflow.scanner.data.preferences.SettingsDataStore
 import com.rentflow.scanner.data.repository.AuthRepository
 import com.rentflow.scanner.data.service.SessionTimeoutManager
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -12,6 +13,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 data class LoginUiState(
+    val serverUrl: String = "",
     val email: String = "",
     val password: String = "",
     val isLoading: Boolean = false,
@@ -24,9 +26,22 @@ data class LoginUiState(
 class LoginViewModel @Inject constructor(
     private val authRepository: AuthRepository,
     private val sessionTimeoutManager: SessionTimeoutManager,
+    private val settingsDataStore: SettingsDataStore,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState
+
+    init {
+        viewModelScope.launch {
+            settingsDataStore.serverUrl.collect { url ->
+                _uiState.update { it.copy(serverUrl = url) }
+            }
+        }
+    }
+
+    fun onServerUrlChange(url: String) {
+        _uiState.update { it.copy(serverUrl = url, error = null) }
+    }
 
     fun onEmailChange(email: String) {
         _uiState.update { it.copy(email = email, error = null) }
@@ -38,11 +53,17 @@ class LoginViewModel @Inject constructor(
 
     fun onLoginClick() {
         val state = _uiState.value
+        if (state.serverUrl.isBlank()) {
+            _uiState.update { it.copy(error = "Server-URL erforderlich") }
+            return
+        }
         if (state.email.isBlank() || state.password.isBlank()) {
             _uiState.update { it.copy(error = "Email und Passwort erforderlich") }
             return
         }
         viewModelScope.launch {
+            // Save server URL before login
+            settingsDataStore.setServerUrl(state.serverUrl)
             _uiState.update { it.copy(isLoading = true, error = null) }
             val result = authRepository.login(state.email, state.password)
             _uiState.update {
