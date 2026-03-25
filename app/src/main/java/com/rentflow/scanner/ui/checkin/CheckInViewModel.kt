@@ -5,6 +5,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rentflow.scanner.data.hardware.HardwareScanner
+import com.rentflow.scanner.data.preferences.SettingsDataStore
 import com.rentflow.scanner.data.util.ImageCompressor
 import com.rentflow.scanner.data.repository.ProjectRepository
 import com.rentflow.scanner.data.repository.ScannerRepository
@@ -13,6 +14,7 @@ import com.rentflow.scanner.domain.model.Project
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -50,13 +52,19 @@ class CheckInViewModel @Inject constructor(
     private val scannerRepository: ScannerRepository,
     private val projectRepository: ProjectRepository,
     private val hardwareScanner: HardwareScanner,
+    private val settingsDataStore: SettingsDataStore,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(CheckInUiState())
     val uiState: StateFlow<CheckInUiState> = _uiState
 
     init {
         loadJobs()
-        hardwareScanner.initBarcodeScan()
+        viewModelScope.launch {
+            val mode = settingsDataStore.scanMode.first()
+            if (mode == SettingsDataStore.SCAN_MODE_BARCODE) {
+                hardwareScanner.initBarcodeScan()
+            }
+        }
         viewModelScope.launch {
             hardwareScanner.barcodeScanEvents.collect { event ->
                 onBarcodeScanned(event.barcode)
@@ -64,7 +72,7 @@ class CheckInViewModel @Inject constructor(
         }
         viewModelScope.launch {
             hardwareScanner.rfidReadEvents.collect { event ->
-                onBarcodeScanned(event.epc)
+                onBarcodeScanned(event.tid.ifBlank { event.epc })
             }
         }
     }

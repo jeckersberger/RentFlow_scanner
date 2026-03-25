@@ -3,6 +3,7 @@ package com.rentflow.scanner.ui.checkout
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rentflow.scanner.data.hardware.HardwareScanner
+import com.rentflow.scanner.data.preferences.SettingsDataStore
 import com.rentflow.scanner.data.repository.ProjectRepository
 import com.rentflow.scanner.data.repository.ScannerRepository
 import com.rentflow.scanner.domain.model.Equipment
@@ -10,6 +11,7 @@ import com.rentflow.scanner.domain.model.EquipmentStatus
 import com.rentflow.scanner.domain.model.Project
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -51,25 +53,29 @@ class CheckOutViewModel @Inject constructor(
     private val scannerRepository: ScannerRepository,
     private val projectRepository: ProjectRepository,
     private val hardwareScanner: HardwareScanner,
+    private val settingsDataStore: SettingsDataStore,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(CheckOutUiState())
     val uiState: StateFlow<CheckOutUiState> = _uiState
 
     init {
         loadProjects()
-        hardwareScanner.initBarcodeScan()
-        // Barcode scan events
+        // Init hardware based on scan mode
+        viewModelScope.launch {
+            val mode = settingsDataStore.scanMode.first()
+            if (mode == SettingsDataStore.SCAN_MODE_BARCODE) {
+                hardwareScanner.initBarcodeScan()
+            }
+        }
+        // Listen to both — only the active mode will produce events
         viewModelScope.launch {
             hardwareScanner.barcodeScanEvents.collect { event ->
                 onBarcodeScanned(event.barcode)
             }
         }
-        // RFID scan events for bulk mode
         viewModelScope.launch {
             hardwareScanner.rfidReadEvents.collect { event ->
-                if (_uiState.value.isRfidBulkActive) {
-                    onRfidTagScanned(event.epc)
-                }
+                onRfidTagScanned(event.tid.ifBlank { event.epc })
             }
         }
     }

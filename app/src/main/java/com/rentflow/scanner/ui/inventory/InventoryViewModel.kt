@@ -3,6 +3,7 @@ package com.rentflow.scanner.ui.inventory
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rentflow.scanner.data.hardware.HardwareScanner
+import com.rentflow.scanner.data.preferences.SettingsDataStore
 import com.rentflow.scanner.data.repository.ScannerRepository
 import com.rentflow.scanner.data.repository.WarehouseRepository
 import com.rentflow.scanner.domain.model.Equipment
@@ -10,6 +11,7 @@ import com.rentflow.scanner.domain.model.EquipmentStatus
 import com.rentflow.scanner.domain.model.WarehouseZone
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -52,13 +54,19 @@ class InventoryViewModel @Inject constructor(
     private val scannerRepository: ScannerRepository,
     private val warehouseRepository: WarehouseRepository,
     private val hardwareScanner: HardwareScanner,
+    private val settingsDataStore: SettingsDataStore,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(InventoryUiState())
     val uiState: StateFlow<InventoryUiState> = _uiState
 
     init {
         loadZones()
-        hardwareScanner.initBarcodeScan()
+        viewModelScope.launch {
+            val mode = settingsDataStore.scanMode.first()
+            if (mode == SettingsDataStore.SCAN_MODE_BARCODE) {
+                hardwareScanner.initBarcodeScan()
+            }
+        }
         viewModelScope.launch {
             hardwareScanner.barcodeScanEvents.collect { event ->
                 onBarcodeScanned(event.barcode)
@@ -66,7 +74,7 @@ class InventoryViewModel @Inject constructor(
         }
         viewModelScope.launch {
             hardwareScanner.rfidReadEvents.collect { event ->
-                onBarcodeScanned(event.epc)
+                onBarcodeScanned(event.tid.ifBlank { event.epc })
             }
         }
     }
