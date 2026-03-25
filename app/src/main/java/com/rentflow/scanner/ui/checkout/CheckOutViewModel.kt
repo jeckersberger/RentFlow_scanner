@@ -261,6 +261,10 @@ class CheckOutViewModel @Inject constructor(
         _uiState.update { it.copy(scannedItems = it.scannedItems - equipment) }
     }
 
+    fun completeCheckOutDirect() {
+        completeCheckOut()
+    }
+
     fun requestSignature() {
         _uiState.update { it.copy(showSignature = true) }
     }

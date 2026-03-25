@@ -9,4 +9,5 @@ data class Project(
     val start_date: String? = null,
     val end_date: String? = null,
     val equipment_count: Int = 0,
+    val isDryHire: Boolean = false,
 )

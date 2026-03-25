@@ -407,7 +407,13 @@ fun CheckOutScreen(
                 if (state.scannedItems.isNotEmpty()) {
                     Spacer(Modifier.height(16.dp))
                     Button(
-                        onClick = viewModel::requestSignature,
+                        onClick = {
+                            if (state.selectedProject?.isDryHire == true) {
+                                viewModel.requestSignature()
+                            } else {
+                                viewModel.completeCheckOutDirect()
+                            }
+                        },
                         enabled = !state.isLoading,
                         modifier = Modifier.fillMaxWidth().height(56.dp),
                     ) {
