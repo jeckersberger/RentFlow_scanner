@@ -312,7 +312,7 @@ fun EquipmentDetailScreen(
                                 Icon(
                                     when (entry.scanType) {
                                         ScanType.OUT -> Icons.Default.Output
-                                        ScanType.IN -> Icons.Default.Input
+                                        ScanType.IN -> Icons.Default.Login
                                         ScanType.INVENTORY -> Icons.Default.Inventory
                                         ScanType.LOOKUP -> Icons.Default.Search
                                     },

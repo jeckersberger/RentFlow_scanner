@@ -154,4 +154,9 @@
     <string name="equipment_signal_strength">Signal Strength</string>
     <string name="spontan">AD-HOC</string>
     <string name="saved">Saved</string>
+    <string name="settings_session_timeout">Session Timeout</string>
+    <string name="settings_lock_after">Lock after</string>
+    <string name="settings_relogin_after">Re-login after</string>
+    <string name="settings_minutes">%1$d min</string>
+    <string name="settings_hours">%1$d hrs</string>
 </resources>
