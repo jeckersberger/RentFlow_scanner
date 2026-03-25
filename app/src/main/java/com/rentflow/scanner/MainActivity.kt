@@ -1,11 +1,14 @@
 package com.rentflow.scanner
 
 import android.os.Bundle
+import android.view.KeyEvent
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.runtime.*
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import com.rentflow.scanner.data.hardware.HardwareScanner
+import com.rentflow.scanner.data.preferences.SettingsDataStore
 import com.rentflow.scanner.data.repository.AuthRepository
 import com.rentflow.scanner.data.service.FindMyScannerService
 import com.rentflow.scanner.data.service.FindMyScannerWorker
@@ -17,6 +20,7 @@ import com.rentflow.scanner.ui.navigation.AppNavigation
 import com.rentflow.scanner.ui.navigation.Routes
 import com.rentflow.scanner.ui.theme.RentFlowScannerTheme
 import dagger.hilt.android.AndroidEntryPoint
+import kotlinx.coroutines.flow.first
 import javax.inject.Inject
 
 @AndroidEntryPoint
@@ -24,6 +28,10 @@ class MainActivity : ComponentActivity() {
     @Inject lateinit var authRepository: AuthRepository
     @Inject lateinit var findMyScannerService: FindMyScannerService
     @Inject lateinit var sessionTimeoutManager: SessionTimeoutManager
+    @Inject lateinit var hardwareScanner: HardwareScanner
+    @Inject lateinit var settingsDataStore: SettingsDataStore
+
+    private var isRfidScanning = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -106,6 +114,42 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    override fun onKeyDown(keyCode: Int, event: KeyEvent?): Boolean {
+        // Hardware trigger = KEY_NUMERIC_POUND (523) or KEY_F9 (0x208=520) / KEY_F10 (0x209=521)
+        if (keyCode == 523 || keyCode == 520 || keyCode == 521 || keyCode == KeyEvent.KEYCODE_F9 || keyCode == KeyEvent.KEYCODE_F10) {
+            val mode = kotlinx.coroutines.runBlocking {
+                settingsDataStore.scanMode.first()
+            }
+            if (mode == SettingsDataStore.SCAN_MODE_RFID) {
+                if (!isRfidScanning) {
+                    hardwareScanner.startRfidBulkRead()
+                    isRfidScanning = true
+                }
+                return true
+            }
+            // Barcode mode: let ScanManager handle it via broadcast
+            return super.onKeyDown(keyCode, event)
+        }
+        return super.onKeyDown(keyCode, event)
+    }
+
+    override fun onKeyUp(keyCode: Int, event: KeyEvent?): Boolean {
+        if (keyCode == 523 || keyCode == 520 || keyCode == 521 || keyCode == KeyEvent.KEYCODE_F9 || keyCode == KeyEvent.KEYCODE_F10) {
+            val mode = kotlinx.coroutines.runBlocking {
+                settingsDataStore.scanMode.first()
+            }
+            if (mode == SettingsDataStore.SCAN_MODE_RFID) {
+                if (isRfidScanning) {
+                    hardwareScanner.stopRfid()
+                    isRfidScanning = false
+                }
+                return true
+            }
+            return super.onKeyUp(keyCode, event)
+        }
+        return super.onKeyUp(keyCode, event)
     }
 
     override fun onUserInteraction() {
