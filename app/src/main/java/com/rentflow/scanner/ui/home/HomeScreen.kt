@@ -37,8 +37,18 @@ fun HomeScreen(
             TopAppBar(
                 title = { Text(stringResource(R.string.home_title)) },
                 actions = {
-                    Box(modifier = Modifier.clickable { onNavigateToQueue() }) {
-                        PendingQueueBadge(state.pendingScanCount)
+                    IconButton(onClick = onNavigateToQueue) {
+                        BadgedBox(
+                            badge = {
+                                if (state.pendingScanCount > 0) {
+                                    Badge(containerColor = MaterialTheme.colorScheme.error) {
+                                        Text("${state.pendingScanCount}")
+                                    }
+                                }
+                            }
+                        ) {
+                            Icon(Icons.Default.CloudQueue, contentDescription = "Offline Queue")
+                        }
                     }
                     IconButton(onClick = onNavigateToSettings) {
                         Icon(Icons.Default.Settings, contentDescription = stringResource(R.string.nav_settings))
