@@ -3,6 +3,7 @@ package com.rentflow.scanner.ui.inventory
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rentflow.scanner.data.hardware.HardwareScanner
+import com.rentflow.scanner.data.hardware.ScanFeedback
 import com.rentflow.scanner.data.preferences.SettingsDataStore
 import com.rentflow.scanner.data.repository.ScannerRepository
 import com.rentflow.scanner.data.repository.WarehouseRepository
@@ -55,6 +56,7 @@ class InventoryViewModel @Inject constructor(
     private val warehouseRepository: WarehouseRepository,
     private val hardwareScanner: HardwareScanner,
     private val settingsDataStore: SettingsDataStore,
+    private val scanFeedback: ScanFeedback,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(InventoryUiState())
     val uiState: StateFlow<InventoryUiState> = _uiState
@@ -74,6 +76,7 @@ class InventoryViewModel @Inject constructor(
         }
         viewModelScope.launch {
             hardwareScanner.rfidReadEvents.collect { event ->
+                scanFeedback.onRfidTagFound()
                 onBarcodeScanned(event.tid.ifBlank { event.epc })
             }
         }
@@ -150,10 +153,12 @@ class InventoryViewModel @Inject constructor(
         viewModelScope.launch {
             scannerRepository.resolveBarcode(barcode).fold(
                 onSuccess = { equipment ->
+                    scanFeedback.onScanSuccess()
                     scannerRepository.sessionScan(state.sessionId, equipment.barcode, "inventory")
                     _uiState.update { it.copy(scannedItems = it.scannedItems + equipment) }
                 },
                 onFailure = { e ->
+                    scanFeedback.onScanError()
                     // If resolve fails but we matched an expected item by RFID, use that
                     if (expectedByRfid != null) {
                         scannerRepository.sessionScan(state.sessionId, expectedByRfid.barcode, "inventory")

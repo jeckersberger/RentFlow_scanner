@@ -3,6 +3,7 @@ package com.rentflow.scanner.ui.checkout
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rentflow.scanner.data.hardware.HardwareScanner
+import com.rentflow.scanner.data.hardware.ScanFeedback
 import com.rentflow.scanner.data.preferences.SettingsDataStore
 import com.rentflow.scanner.data.repository.ProjectRepository
 import com.rentflow.scanner.data.repository.ScannerRepository
@@ -54,6 +55,7 @@ class CheckOutViewModel @Inject constructor(
     private val projectRepository: ProjectRepository,
     private val hardwareScanner: HardwareScanner,
     private val settingsDataStore: SettingsDataStore,
+    private val scanFeedback: ScanFeedback,
 ) : ViewModel() {
     private val _uiState = MutableStateFlow(CheckOutUiState())
     val uiState: StateFlow<CheckOutUiState> = _uiState
@@ -75,6 +77,7 @@ class CheckOutViewModel @Inject constructor(
         }
         viewModelScope.launch {
             hardwareScanner.rfidReadEvents.collect { event ->
+                scanFeedback.onRfidTagFound()
                 onRfidTagScanned(event.tid.ifBlank { event.epc })
             }
         }
@@ -144,7 +147,10 @@ class CheckOutViewModel @Inject constructor(
             )
             scannerRepository.createSession("out", project.id).fold(
                 onSuccess = { session -> _uiState.update { it.copy(sessionId = session.id, isLoading = false) } },
-                onFailure = { e -> _uiState.update { it.copy(isLoading = false, error = e.message) } },
+                onFailure = {
+                    // Offline/no endpoint: use local session
+                    _uiState.update { it.copy(sessionId = "local-${System.currentTimeMillis()}", isLoading = false) }
+                },
             )
         }
     }
@@ -169,6 +175,7 @@ class CheckOutViewModel @Inject constructor(
         viewModelScope.launch {
             scannerRepository.resolveBarcode(epc).fold(
                 onSuccess = { equipment ->
+                    scanFeedback.onScanSuccess()
                     _uiState.update { it.copy(rfidResolving = it.rfidResolving - epc) }
                     val isExpected = state.expectedEquipmentIds.isEmpty() || equipment.id in state.expectedEquipmentIds
                     if (isExpected) {
@@ -177,6 +184,7 @@ class CheckOutViewModel @Inject constructor(
                     // In RFID bulk mode, skip ad-hoc confirmation for speed
                 },
                 onFailure = {
+                    scanFeedback.onScanError()
                     _uiState.update { it.copy(rfidResolving = it.rfidResolving - epc) }
                 },
             )
@@ -191,6 +199,7 @@ class CheckOutViewModel @Inject constructor(
         viewModelScope.launch {
             scannerRepository.resolveBarcode(barcode).fold(
                 onSuccess = { equipment ->
+                    scanFeedback.onScanSuccess()
                     val isExpected = state.expectedEquipmentIds.isEmpty() || equipment.id in state.expectedEquipmentIds
                     if (isExpected) {
                         addOrWarnDefective(equipment)
@@ -198,7 +207,10 @@ class CheckOutViewModel @Inject constructor(
                         _uiState.update { it.copy(adHocEquipment = equipment) }
                     }
                 },
-                onFailure = { e -> _uiState.update { it.copy(error = e.message) } },
+                onFailure = { e ->
+                    scanFeedback.onScanError()
+                    _uiState.update { it.copy(error = e.message) }
+                },
             )
         }
     }
@@ -276,7 +288,10 @@ class CheckOutViewModel @Inject constructor(
             }
             scannerRepository.endSession(state.sessionId).fold(
                 onSuccess = { _uiState.update { it.copy(isLoading = false, showSummary = true) } },
-                onFailure = { e -> _uiState.update { it.copy(isLoading = false, error = e.message) } },
+                onFailure = {
+                    // Local session or server error — complete locally
+                    _uiState.update { it.copy(isLoading = false, showSummary = true) }
+                },
             )
         }
     }

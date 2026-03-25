@@ -178,6 +178,14 @@ fun ScanScreen(
                                             fontFamily = FontFamily.Monospace,
                                             fontWeight = FontWeight.Bold,
                                         )
+                                        if (tag.tid.isNotBlank()) {
+                                            Text(
+                                                "TID: ${tag.tid}",
+                                                style = MaterialTheme.typography.bodySmall,
+                                                fontFamily = FontFamily.Monospace,
+                                                color = Cyan.copy(alpha = 0.7f),
+                                            )
+                                        }
                                     }
                                     Text(
                                         "${tag.rssi} dBm",
