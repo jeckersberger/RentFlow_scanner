@@ -85,10 +85,53 @@ class LoginViewModel @Inject constructor(
         _uiState.update { it.copy(showQrScanner = false) }
     }
 
-    fun onQrCodeScanned(qrToken: String) {
-        _uiState.update { it.copy(showQrScanner = false, isLoading = true, error = null) }
+    fun onQrCodeScanned(qrData: String) {
+        _uiState.update { it.copy(showQrScanner = false) }
+
+        // Try to parse as JSON setup QR: {"url":"https://...","token":"...","tenant_id":"..."}
+        try {
+            val json = org.json.JSONObject(qrData)
+            val url = json.optString("url", "")
+            val token = json.optString("token", "")
+            val tenantId = json.optString("tenant_id", "")
+
+            if (url.isNotBlank()) {
+                // Setup QR — set server URL
+                viewModelScope.launch { settingsDataStore.setServerUrl(url) }
+                _uiState.update { it.copy(serverUrl = url) }
+            }
+
+            if (token.isNotBlank()) {
+                // Quick-login QR with token
+                _uiState.update { it.copy(isLoading = true, error = null) }
+                viewModelScope.launch {
+                    val result = authRepository.qrLogin(token)
+                    _uiState.update {
+                        if (result.isSuccess) {
+                            sessionTimeoutManager.reset()
+                            it.copy(isLoading = false, loginSuccess = true)
+                        } else {
+                            it.copy(isLoading = false, error = result.exceptionOrNull()?.message ?: "QR-Login fehlgeschlagen")
+                        }
+                    }
+                }
+            }
+            return
+        } catch (_: Exception) {
+            // Not JSON — try as plain URL
+        }
+
+        // If it looks like a URL, use as server URL
+        if (qrData.startsWith("http")) {
+            viewModelScope.launch { settingsDataStore.setServerUrl(qrData) }
+            _uiState.update { it.copy(serverUrl = qrData) }
+            return
+        }
+
+        // Fallback: treat as login token
+        _uiState.update { it.copy(isLoading = true, error = null) }
         viewModelScope.launch {
-            val result = authRepository.qrLogin(qrToken)
+            val result = authRepository.qrLogin(qrData)
             _uiState.update {
                 if (result.isSuccess) {
                     sessionTimeoutManager.reset()
