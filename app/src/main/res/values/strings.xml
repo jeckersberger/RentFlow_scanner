@@ -175,4 +175,16 @@
     <string name="checkout_location">Lagerplatz: %1$s</string>
     <string name="checkin_auto_detected">Rückgabe für Job \"%1$s\" erkannt</string>
     <string name="checkin_progress">Zurückgegeben: %1$d / Soll: %2$d</string>
+    <string name="defective_warning_title">Gerät defekt</string>
+    <string name="defective_warning_text">%1$s ist als defekt markiert. Trotzdem einpacken?</string>
+    <string name="defective_pack_anyway">Einpacken</string>
+    <string name="summary_checkout_done">Checkout abgeschlossen</string>
+    <string name="summary_checkin_done">Check-In abgeschlossen</string>
+    <string name="summary_items_scanned">%1$d Items gescannt</string>
+    <string name="summary_items_missing">%1$d fehlend</string>
+    <string name="summary_items_ok">%1$d OK</string>
+    <string name="summary_items_damaged">%1$d beschädigt</string>
+    <string name="summary_items_defective">%1$d defekt</string>
+    <string name="summary_done">Fertig</string>
+    <string name="summary_damaged_items">Beschädigte/Defekte Items:</string>
 </resources>

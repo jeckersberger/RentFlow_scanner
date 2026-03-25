@@ -20,10 +20,12 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.rentflow.scanner.R
+import com.rentflow.scanner.domain.model.EquipmentStatus
 import com.rentflow.scanner.ui.components.EquipmentCard
 import com.rentflow.scanner.ui.components.SignatureCanvas
 import com.rentflow.scanner.ui.theme.Cyan
 import com.rentflow.scanner.ui.theme.Error
+import com.rentflow.scanner.ui.theme.Success
 import com.rentflow.scanner.ui.theme.Warning
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -90,6 +92,38 @@ fun CheckOutScreen(
         )
     }
 
+    // Defective equipment warning dialog
+    state.defectiveEquipment?.let { equipment ->
+        AlertDialog(
+            onDismissRequest = viewModel::dismissDefective,
+            icon = {
+                Icon(
+                    Icons.Default.Warning,
+                    contentDescription = null,
+                    tint = Warning,
+                    modifier = Modifier.size(32.dp),
+                )
+            },
+            title = { Text(stringResource(R.string.defective_warning_title), color = Warning) },
+            text = {
+                Text(stringResource(R.string.defective_warning_text, equipment.name))
+            },
+            confirmButton = {
+                Button(
+                    onClick = viewModel::confirmDefective,
+                    colors = ButtonDefaults.buttonColors(containerColor = Warning),
+                ) {
+                    Text(stringResource(R.string.defective_pack_anyway))
+                }
+            },
+            dismissButton = {
+                OutlinedButton(onClick = viewModel::dismissDefective) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
+    }
+
     Scaffold(
         topBar = {
             TopAppBar(
@@ -117,7 +151,87 @@ fun CheckOutScreen(
         Column(
             modifier = Modifier.fillMaxSize().padding(padding).padding(16.dp),
         ) {
-            if (state.selectedProject == null) {
+            if (state.showSummary) {
+                // Summary screen after checkout completion
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Spacer(Modifier.height(32.dp))
+                    Icon(
+                        Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        tint = Success,
+                        modifier = Modifier.size(64.dp),
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        stringResource(R.string.summary_checkout_done),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    state.selectedProject?.let {
+                        Text(
+                            it.name,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Spacer(Modifier.height(16.dp))
+                    val scannedCount = state.scannedItems.size
+                    val missingCount = if (state.expectedItems.isNotEmpty()) {
+                        val scannedIds = state.scannedItems.map { it.id }.toSet()
+                        state.expectedItems.count { it.id !in scannedIds }
+                    } else 0
+                    Text(
+                        stringResource(R.string.summary_items_scanned, scannedCount),
+                        style = MaterialTheme.typography.bodyLarge,
+                    )
+                    if (missingCount > 0) {
+                        Text(
+                            stringResource(R.string.summary_items_missing, missingCount),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = Warning,
+                        )
+                    }
+                    Spacer(Modifier.height(16.dp))
+                    val defectiveItems = state.scannedItems.filter {
+                        it.status == EquipmentStatus.DAMAGED || it.status == EquipmentStatus.IN_MAINTENANCE
+                    }
+                    if (defectiveItems.isNotEmpty()) {
+                        Text(
+                            stringResource(R.string.summary_damaged_items),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Warning,
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        defectiveItems.forEach { item ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(
+                                    Icons.Default.Warning,
+                                    contentDescription = null,
+                                    tint = Warning,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Text(item.name, style = MaterialTheme.typography.bodyMedium)
+                            }
+                        }
+                    }
+                    Spacer(Modifier.weight(1f))
+                    Button(
+                        onClick = viewModel::dismissSummary,
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                    ) {
+                        Text(stringResource(R.string.summary_done))
+                    }
+                }
+            } else if (state.selectedProject == null) {
                 Text(stringResource(R.string.checkout_select_project), style = MaterialTheme.typography.titleLarge)
                 Spacer(Modifier.height(12.dp))
                 Row(

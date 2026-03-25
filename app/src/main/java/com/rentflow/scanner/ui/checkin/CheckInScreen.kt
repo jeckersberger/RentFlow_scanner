@@ -27,6 +27,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import coil.compose.AsyncImage
 import com.rentflow.scanner.R
 import com.rentflow.scanner.domain.model.Project
+import com.rentflow.scanner.ui.components.SignatureCanvas
 import com.rentflow.scanner.ui.theme.Cyan
 import com.rentflow.scanner.ui.theme.Error
 import com.rentflow.scanner.ui.theme.Success
@@ -61,6 +62,25 @@ fun CheckInScreen(
             photoUri = uri
             cameraLauncher.launch(uri)
         }
+    }
+
+    // Signature dialog
+    if (state.showSignature) {
+        AlertDialog(
+            onDismissRequest = viewModel::dismissSignature,
+            title = { Text(stringResource(R.string.signature_title)) },
+            text = {
+                SignatureCanvas(
+                    onSignatureComplete = { bitmap -> viewModel.completeWithSignature(bitmap) },
+                )
+            },
+            confirmButton = {},
+            dismissButton = {
+                OutlinedButton(onClick = viewModel::dismissSignature) {
+                    Text(stringResource(R.string.cancel))
+                }
+            },
+        )
     }
 
     // Auto-detection dialog
@@ -107,7 +127,103 @@ fun CheckInScreen(
                 Spacer(Modifier.height(8.dp))
             }
 
-            if (state.selectedProject == null) {
+            if (state.showSummary) {
+                // Summary screen after check-in completion
+                Column(
+                    modifier = Modifier.fillMaxSize(),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    Spacer(Modifier.height(32.dp))
+                    Icon(
+                        Icons.Default.CheckCircle,
+                        contentDescription = null,
+                        tint = Success,
+                        modifier = Modifier.size(64.dp),
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    Text(
+                        stringResource(R.string.summary_checkin_done),
+                        style = MaterialTheme.typography.headlineSmall,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    state.selectedProject?.let {
+                        Text(
+                            it.name,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    Spacer(Modifier.height(16.dp))
+                    val okCount = state.scannedItems.count { it.condition == ItemCondition.OK }
+                    val damagedCount = state.scannedItems.count { it.condition == ItemCondition.DAMAGED }
+                    val defectiveCount = state.scannedItems.count { it.condition == ItemCondition.DEFECTIVE }
+                    Text(
+                        stringResource(R.string.summary_items_ok, okCount),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Success,
+                    )
+                    if (damagedCount > 0) {
+                        Text(
+                            stringResource(R.string.summary_items_damaged, damagedCount),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = Warning,
+                        )
+                    }
+                    if (defectiveCount > 0) {
+                        Text(
+                            stringResource(R.string.summary_items_defective, defectiveCount),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = Error,
+                        )
+                    }
+                    val problemItems = state.scannedItems.filter {
+                        it.condition == ItemCondition.DAMAGED || it.condition == ItemCondition.DEFECTIVE
+                    }
+                    if (problemItems.isNotEmpty()) {
+                        Spacer(Modifier.height(16.dp))
+                        Text(
+                            stringResource(R.string.summary_damaged_items),
+                            style = MaterialTheme.typography.titleSmall,
+                            fontWeight = FontWeight.Bold,
+                            color = Warning,
+                            modifier = Modifier.fillMaxWidth(),
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        problemItems.forEach { item ->
+                            Row(
+                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Icon(
+                                    if (item.condition == ItemCondition.DEFECTIVE) Icons.Default.Error else Icons.Default.Warning,
+                                    contentDescription = null,
+                                    tint = if (item.condition == ItemCondition.DEFECTIVE) Error else Warning,
+                                    modifier = Modifier.size(20.dp),
+                                )
+                                Spacer(Modifier.width(8.dp))
+                                Column {
+                                    Text(item.equipment.name, style = MaterialTheme.typography.bodyMedium)
+                                    if (item.notes.isNotBlank()) {
+                                        Text(
+                                            item.notes,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    Spacer(Modifier.weight(1f))
+                    Button(
+                        onClick = viewModel::dismissSummary,
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                    ) {
+                        Text(stringResource(R.string.summary_done))
+                    }
+                }
+            } else if (state.selectedProject == null) {
                 // Job selection phase
                 Text(stringResource(R.string.checkin_returning_today), style = MaterialTheme.typography.titleLarge)
                 Spacer(Modifier.height(12.dp))

@@ -40,6 +40,8 @@ data class CheckInUiState(
     val error: String? = null,
     val completed: Boolean = false,
     val photoTargetIndex: Int = -1,
+    val showSignature: Boolean = false,
+    val showSummary: Boolean = false,
 )
 
 @HiltViewModel
@@ -236,14 +238,27 @@ class CheckInViewModel @Inject constructor(
     }
 
     fun completeCheckIn() {
+        _uiState.update { it.copy(showSignature = true) }
+    }
+
+    fun dismissSignature() {
+        _uiState.update { it.copy(showSignature = false) }
+    }
+
+    fun completeWithSignature(signatureBitmap: android.graphics.Bitmap?) {
         val state = _uiState.value
         if (state.sessionId == null) return
+        _uiState.update { it.copy(showSignature = false, isLoading = true) }
+        // TODO: Upload signature bitmap to server when backend available
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
             scannerRepository.endSession(state.sessionId).fold(
-                onSuccess = { _uiState.update { it.copy(isLoading = false, completed = true) } },
+                onSuccess = { _uiState.update { it.copy(isLoading = false, showSummary = true) } },
                 onFailure = { e -> _uiState.update { it.copy(isLoading = false, error = e.message) } },
             )
         }
+    }
+
+    fun dismissSummary() {
+        _uiState.update { it.copy(completed = true) }
     }
 }

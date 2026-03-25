@@ -39,9 +39,11 @@ data class CheckOutUiState(
     val error: String? = null,
     val completed: Boolean = false,
     val adHocEquipment: Equipment? = null,
+    val defectiveEquipment: Equipment? = null,
     val isRfidBulkActive: Boolean = false,
     val rfidResolving: Set<String> = emptySet(),
     val showSignature: Boolean = false,
+    val showSummary: Boolean = false,
 )
 
 @HiltViewModel
@@ -163,7 +165,7 @@ class CheckOutViewModel @Inject constructor(
                     _uiState.update { it.copy(rfidResolving = it.rfidResolving - epc) }
                     val isExpected = state.expectedEquipmentIds.isEmpty() || equipment.id in state.expectedEquipmentIds
                     if (isExpected) {
-                        addEquipment(equipment)
+                        addOrWarnDefective(equipment)
                     }
                     // In RFID bulk mode, skip ad-hoc confirmation for speed
                 },
@@ -184,7 +186,7 @@ class CheckOutViewModel @Inject constructor(
                 onSuccess = { equipment ->
                     val isExpected = state.expectedEquipmentIds.isEmpty() || equipment.id in state.expectedEquipmentIds
                     if (isExpected) {
-                        addEquipment(equipment)
+                        addOrWarnDefective(equipment)
                     } else {
                         _uiState.update { it.copy(adHocEquipment = equipment) }
                     }
@@ -197,11 +199,33 @@ class CheckOutViewModel @Inject constructor(
     fun confirmAdHoc() {
         val equipment = _uiState.value.adHocEquipment ?: return
         _uiState.update { it.copy(adHocEquipment = null) }
-        addEquipment(equipment)
+        addOrWarnDefective(equipment)
     }
 
     fun dismissAdHoc() {
         _uiState.update { it.copy(adHocEquipment = null) }
+    }
+
+    fun confirmDefective() {
+        val equipment = _uiState.value.defectiveEquipment ?: return
+        _uiState.update { it.copy(defectiveEquipment = null) }
+        addEquipment(equipment)
+    }
+
+    fun dismissDefective() {
+        _uiState.update { it.copy(defectiveEquipment = null) }
+    }
+
+    private fun addOrWarnDefective(equipment: Equipment) {
+        if (equipment.status == EquipmentStatus.DAMAGED || equipment.status == EquipmentStatus.IN_MAINTENANCE) {
+            _uiState.update { it.copy(defectiveEquipment = equipment) }
+        } else {
+            addEquipment(equipment)
+        }
+    }
+
+    fun dismissSummary() {
+        _uiState.update { it.copy(completed = true) }
     }
 
     private fun addEquipment(equipment: Equipment) {
@@ -244,7 +268,7 @@ class CheckOutViewModel @Inject constructor(
                 _uiState.update { it.copy(isRfidBulkActive = false) }
             }
             scannerRepository.endSession(state.sessionId).fold(
-                onSuccess = { _uiState.update { it.copy(isLoading = false, completed = true) } },
+                onSuccess = { _uiState.update { it.copy(isLoading = false, showSummary = true) } },
                 onFailure = { e -> _uiState.update { it.copy(isLoading = false, error = e.message) } },
             )
         }

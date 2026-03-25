@@ -175,4 +175,16 @@
     <string name="checkout_location">Storage: %1$s</string>
     <string name="checkin_auto_detected">Return for job \"%1$s\" detected</string>
     <string name="checkin_progress">Returned: %1$d / Expected: %2$d</string>
+    <string name="defective_warning_title">Equipment defective</string>
+    <string name="defective_warning_text">%1$s is marked as defective. Pack it anyway?</string>
+    <string name="defective_pack_anyway">Pack anyway</string>
+    <string name="summary_checkout_done">Checkout completed</string>
+    <string name="summary_checkin_done">Check-In completed</string>
+    <string name="summary_items_scanned">%1$d items scanned</string>
+    <string name="summary_items_missing">%1$d missing</string>
+    <string name="summary_items_ok">%1$d OK</string>
+    <string name="summary_items_damaged">%1$d damaged</string>
+    <string name="summary_items_defective">%1$d defective</string>
+    <string name="summary_done">Done</string>
+    <string name="summary_damaged_items">Damaged/Defective items:</string>
 </resources>
