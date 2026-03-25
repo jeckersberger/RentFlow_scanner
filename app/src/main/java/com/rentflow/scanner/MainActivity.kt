@@ -125,7 +125,7 @@ class MainActivity : AppCompatActivity() {
             if (mode == SettingsDataStore.SCAN_MODE_RFID) {
                 // Stop only after 2s of no new KeyDown — trigger truly released
                 rfidStopHandler.removeCallbacks(rfidStopRunnable)
-                rfidStopHandler.postDelayed(rfidStopRunnable, 2000)
+                rfidStopHandler.postDelayed(rfidStopRunnable, 200)
                 return true
             }
             return super.onKeyUp(keyCode, event)
