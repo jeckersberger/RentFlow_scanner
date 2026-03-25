@@ -250,7 +250,10 @@ class AppUpdateService @Inject constructor(
 
     private fun parseVersionCode(version: String): Int {
         val parts = version.split(".").map { it.toIntOrNull() ?: 0 }
-        return parts.getOrElse(0) { 0 } * 1000 + parts.getOrElse(1) { 0 }
+        // major * 10000 + minor * 100 + patch → e.g. 2.0.1 = 20001
+        return parts.getOrElse(0) { 0 } * 10000 +
+               parts.getOrElse(1) { 0 } * 100 +
+               parts.getOrElse(2) { 0 }
     }
 }
 
