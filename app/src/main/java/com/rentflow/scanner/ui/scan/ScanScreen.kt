@@ -119,18 +119,43 @@ fun ScanScreen(
                 }
             } else {
                 // Waiting for scan
-                Spacer(Modifier.height(64.dp))
+                Spacer(Modifier.height(48.dp))
                 Icon(
                     if (isRfidMode) Icons.Default.Sensors else Icons.Default.QrCodeScanner,
                     contentDescription = null,
                     modifier = Modifier.size(96.dp),
-                    tint = Cyan,
+                    tint = if (state.isScanning) Cyan else Cyan.copy(alpha = 0.5f),
                 )
                 Spacer(Modifier.height(16.dp))
-                Text(
-                    if (isRfidMode) "RFID — Trigger drücken" else "Barcode — Trigger drücken",
-                    style = MaterialTheme.typography.headlineSmall,
-                )
+
+                if (isRfidMode) {
+                    Text(
+                        if (state.isScanning) "RFID liest..." else "RFID bereit",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = if (state.isScanning) Cyan else MaterialTheme.colorScheme.onSurface,
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    Button(
+                        onClick = { viewModel.toggleRfidScan() },
+                        modifier = Modifier.fillMaxWidth().height(56.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (state.isScanning) MaterialTheme.colorScheme.error else Cyan,
+                        ),
+                    ) {
+                        Icon(
+                            if (state.isScanning) Icons.Default.Stop else Icons.Default.PlayArrow,
+                            contentDescription = null,
+                            modifier = Modifier.padding(end = 8.dp),
+                        )
+                        Text(if (state.isScanning) "Scan stoppen" else "RFID Scan starten")
+                    }
+                } else {
+                    Text(
+                        "Barcode — Trigger drücken",
+                        style = MaterialTheme.typography.headlineSmall,
+                    )
+                }
+
                 Text(
                     if (isRfidMode) "Modus: RFID" else "Modus: Barcode",
                     style = MaterialTheme.typography.bodyMedium,

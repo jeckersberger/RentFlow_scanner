@@ -92,7 +92,7 @@ fun SettingsScreen(
             }
             if (state.saved) {
                 Spacer(Modifier.height(16.dp))
-                Text(stringResource(R.string.settings_saved), color = Success)
+                Text("Gespeichert", color = Success)
             }
 
             Spacer(Modifier.height(32.dp))

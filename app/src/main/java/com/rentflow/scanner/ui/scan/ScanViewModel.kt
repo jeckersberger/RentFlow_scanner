@@ -44,10 +44,14 @@ class ScanViewModel @Inject constructor(
             activateMode(mode)
         }
 
-        // Keep listening for mode changes
+        // React to mode changes and switch hardware
         viewModelScope.launch {
             settingsDataStore.scanMode.collect { mode ->
+                val oldMode = _uiState.value.scanMode
                 _uiState.update { it.copy(scanMode = mode) }
+                if (mode != oldMode) {
+                    activateMode(mode)
+                }
             }
         }
 
@@ -103,6 +107,16 @@ class ScanViewModel @Inject constructor(
                     _uiState.update { it.copy(isLoading = false, error = e.message) }
                 },
             )
+        }
+    }
+
+    fun toggleRfidScan() {
+        if (_uiState.value.isScanning) {
+            hardwareScanner.stopRfid()
+            _uiState.update { it.copy(isScanning = false) }
+        } else {
+            hardwareScanner.startRfidBulkRead()
+            _uiState.update { it.copy(isScanning = true) }
         }
     }
 
