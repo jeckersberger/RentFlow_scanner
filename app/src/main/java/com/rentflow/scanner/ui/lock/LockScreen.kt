@@ -23,6 +23,7 @@ import com.rentflow.scanner.ui.theme.Cyan
 fun LockScreen(
     onUnlock: () -> Unit,
     onFullLogin: () -> Unit,
+    onQrLogin: () -> Unit,
     onPasswordSubmit: (String) -> Unit,
     error: String? = null,
     isLoading: Boolean = false,
@@ -93,6 +94,16 @@ fun LockScreen(
         }
 
         Spacer(Modifier.height(16.dp))
+
+        OutlinedButton(
+            onClick = onQrLogin,
+            modifier = Modifier.fillMaxWidth().height(56.dp),
+        ) {
+            Icon(Icons.Default.QrCodeScanner, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+            Text(stringResource(R.string.login_qr))
+        }
+
+        Spacer(Modifier.height(12.dp))
 
         TextButton(onClick = onFullLogin) {
             Text(stringResource(R.string.lock_switch_user))

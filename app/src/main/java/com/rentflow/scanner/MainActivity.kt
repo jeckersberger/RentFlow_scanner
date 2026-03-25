@@ -94,6 +94,11 @@ class MainActivity : AppCompatActivity() {
                                 authRepository.logout()
                                 sessionTimeoutManager.requireFullLogin()
                             },
+                            onQrLogin = {
+                                // Go to full login screen where QR scanner is available
+                                authRepository.logout()
+                                sessionTimeoutManager.requireFullLogin()
+                            },
                             onPasswordSubmit = { password ->
                                 isUnlocking = true
                                 lockError = null
