@@ -101,6 +101,21 @@ fun SettingsScreen(
                 )
             }
             Spacer(Modifier.height(24.dp))
+            Text(stringResource(R.string.settings_logout_timeout), style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.height(8.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(15, 30, 60, 120, 480).forEach { minutes ->
+                    FilterChip(
+                        selected = state.logoutTimeoutMinutes == minutes,
+                        onClick = { viewModel.onLogoutTimeoutChange(minutes) },
+                        label = {
+                            Text(if (minutes < 60) stringResource(R.string.settings_minutes, minutes)
+                                 else stringResource(R.string.settings_hours, minutes / 60))
+                        },
+                    )
+                }
+            }
+            Spacer(Modifier.height(24.dp))
             Button(
                 onClick = viewModel::save,
                 modifier = Modifier.fillMaxWidth().height(56.dp),

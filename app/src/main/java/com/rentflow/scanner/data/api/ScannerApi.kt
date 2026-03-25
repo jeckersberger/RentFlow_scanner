@@ -48,4 +48,7 @@ interface ScannerApi {
 
     @GET("api/v1/scan/history")
     suspend fun scanHistory(@Query("barcode") barcode: String): Response<ApiResponse<List<ScanResult>>>
+
+    @PUT("api/v1/scan/equipment/{id}/rfid")
+    suspend fun pairRfidTag(@Path("id") id: String, @Body body: Map<String, String>): Response<ApiResponse<Unit>>
 }

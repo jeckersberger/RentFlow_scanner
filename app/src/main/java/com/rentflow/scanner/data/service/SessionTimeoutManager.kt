@@ -12,12 +12,8 @@ import javax.inject.Singleton
 class SessionTimeoutManager @Inject constructor(
     private val settingsDataStore: SettingsDataStore,
 ) {
-
-    private val lockTimeoutMs: Long
-        get() = runBlocking { settingsDataStore.lockTimeoutMinutes.first() } * 60 * 1000L
-
-    private val fullReloginTimeoutMs: Long
-        get() = runBlocking { settingsDataStore.fullReloginHours.first() } * 60 * 60 * 1000L
+    private val logoutTimeoutMs: Long
+        get() = runBlocking { settingsDataStore.logoutTimeoutMinutes.first() } * 60 * 1000L
 
     private var lastActivityTimestamp: Long = System.currentTimeMillis()
     private var backgroundTimestamp: Long = 0L
@@ -27,7 +23,6 @@ class SessionTimeoutManager @Inject constructor(
 
     fun onUserActivity() {
         lastActivityTimestamp = System.currentTimeMillis()
-        if (_lockState.value == LockState.UNLOCKED) return
     }
 
     fun onAppForeground() {
@@ -35,9 +30,8 @@ class SessionTimeoutManager @Inject constructor(
         val elapsed = System.currentTimeMillis() - backgroundTimestamp
         backgroundTimestamp = 0L
 
-        when {
-            elapsed >= fullReloginTimeoutMs -> _lockState.value = LockState.FULL_RELOGIN
-            elapsed >= lockTimeoutMs -> _lockState.value = LockState.LOCKED
+        if (elapsed >= logoutTimeoutMs) {
+            _lockState.value = LockState.FULL_RELOGIN
         }
     }
 
@@ -48,8 +42,8 @@ class SessionTimeoutManager @Inject constructor(
     fun checkInactivity() {
         if (_lockState.value != LockState.UNLOCKED) return
         val elapsed = System.currentTimeMillis() - lastActivityTimestamp
-        if (elapsed >= lockTimeoutMs) {
-            _lockState.value = LockState.LOCKED
+        if (elapsed >= logoutTimeoutMs) {
+            _lockState.value = LockState.FULL_RELOGIN
         }
     }
 
@@ -71,6 +65,5 @@ class SessionTimeoutManager @Inject constructor(
 
 enum class LockState {
     UNLOCKED,
-    LOCKED,
     FULL_RELOGIN,
 }

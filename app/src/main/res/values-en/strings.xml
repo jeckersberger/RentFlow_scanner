@@ -58,7 +58,7 @@
     <string name="inventory_confirm">Complete Inventory</string>
     <string name="inventory_soll_ist">Found: %1$d / Expected: %2$d</string>
     <string name="equipment_detail_title">Equipment</string>
-    <string name="equipment_write_rfid">Write RFID Tag</string>
+    <string name="equipment_write_rfid">Pair RFID Tag</string>
     <string name="equipment_not_found">Unknown barcode: %1$s</string>
     <string name="equipment_change_location">Change location</string>
     <string name="equipment_location_saved">Location changed to \"%1$s\"</string>
@@ -187,4 +187,5 @@
     <string name="summary_items_defective">%1$d defective</string>
     <string name="summary_done">Done</string>
     <string name="summary_damaged_items">Damaged/Defective items:</string>
+    <string name="settings_logout_timeout">Auto-Logout</string>
 </resources>

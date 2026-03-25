@@ -13,7 +13,7 @@ class MockHardwareScanner @Inject constructor() : HardwareScanner {
     override val rfidReadEvents: Flow<RfidReadEvent> = _rfidReadEvents
 
     private val mockBarcodes = listOf("EQ-001", "EQ-002", "EQ-003", "EQ-004", "EQ-005")
-    private val mockRfidTags = listOf("E200001", "E200002", "E200003")
+    private val mockTids = listOf("E2801160200000", "E2801160200001", "E2801160200002")
     private var scanIndex = 0
 
     override fun initBarcodeScan() {}
@@ -25,9 +25,9 @@ class MockHardwareScanner @Inject constructor() : HardwareScanner {
     override fun stopRfid() {}
     override fun closeRfid() {}
 
-    override suspend fun writeRfidTag(epc: String): RfidWriteResult {
-        delay(500)
-        return RfidWriteResult(success = true)
+    override suspend fun readTid(epc: String): String? {
+        delay(200)
+        return "E2801160MOCK${epc.hashCode().toString(16).uppercase().takeLast(8)}"
     }
 
     override fun isRfidAvailable(): Boolean = true
@@ -39,7 +39,8 @@ class MockHardwareScanner @Inject constructor() : HardwareScanner {
     }
 
     suspend fun simulateRfidRead(epc: String? = null, rssi: Int = -45) {
-        val tag = epc ?: mockRfidTags.random()
-        _rfidReadEvents.emit(RfidReadEvent(tag, rssi))
+        val tag = epc ?: "E200${mockTids.random()}"
+        val tid = "E2801160MOCK${tag.hashCode().toString(16).uppercase().takeLast(8)}"
+        _rfidReadEvents.emit(RfidReadEvent(tag, tid, rssi))
     }
 }

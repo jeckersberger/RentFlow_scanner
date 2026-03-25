@@ -24,8 +24,7 @@ data class SettingsUiState(
     val serverUrl: String = "",
     val language: String = "de",
     val scanMode: String = "barcode",
-    val lockTimeoutMinutes: Int = 30,
-    val fullReloginHours: Int = 4,
+    val logoutTimeoutMinutes: Int = 60,
     val saved: Boolean = false,
     val connectionStatus: ConnectionStatus = ConnectionStatus.UNKNOWN,
     val updateInfo: UpdateInfo? = null,
@@ -58,13 +57,8 @@ class SettingsViewModel @Inject constructor(
             }
         }
         viewModelScope.launch {
-            settingsDataStore.lockTimeoutMinutes.collect { minutes ->
-                _uiState.update { it.copy(lockTimeoutMinutes = minutes) }
-            }
-        }
-        viewModelScope.launch {
-            settingsDataStore.fullReloginHours.collect { hours ->
-                _uiState.update { it.copy(fullReloginHours = hours) }
+            settingsDataStore.logoutTimeoutMinutes.collect { minutes ->
+                _uiState.update { it.copy(logoutTimeoutMinutes = minutes) }
             }
         }
         viewModelScope.launch {
@@ -91,12 +85,8 @@ class SettingsViewModel @Inject constructor(
         _uiState.update { it.copy(scanMode = mode, saved = false) }
     }
 
-    fun onLockTimeoutChange(minutes: Int) {
-        _uiState.update { it.copy(lockTimeoutMinutes = minutes, saved = false) }
-    }
-
-    fun onFullReloginChange(hours: Int) {
-        _uiState.update { it.copy(fullReloginHours = hours, saved = false) }
+    fun onLogoutTimeoutChange(minutes: Int) {
+        _uiState.update { it.copy(logoutTimeoutMinutes = minutes, saved = false) }
     }
 
     fun save() {
@@ -104,9 +94,7 @@ class SettingsViewModel @Inject constructor(
             settingsDataStore.setServerUrl(_uiState.value.serverUrl)
             settingsDataStore.setLanguage(_uiState.value.language)
             settingsDataStore.setScanMode(_uiState.value.scanMode)
-            settingsDataStore.setLockTimeout(_uiState.value.lockTimeoutMinutes)
-            settingsDataStore.setFullReloginTimeout(_uiState.value.fullReloginHours)
-            // Apply language change immediately
+            settingsDataStore.setLogoutTimeout(_uiState.value.logoutTimeoutMinutes)
             RentFlowScannerApp.applyLanguage(_uiState.value.language)
             _uiState.update { it.copy(saved = true) }
         }

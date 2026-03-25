@@ -168,6 +168,21 @@ class ScannerRepository @Inject constructor(
         }
     }
 
+    suspend fun pairRfidTag(equipmentId: String, tid: String): Result<Unit> {
+        return try {
+            val response = scannerApi.pairRfidTag(equipmentId, mapOf("rfid_tid" to tid))
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                if (tokenManager.getAccessToken() == "demo-access-token") Result.success(Unit)
+                else Result.failure(Exception("RFID-Zuordnung fehlgeschlagen"))
+            }
+        } catch (e: Exception) {
+            if (tokenManager.getAccessToken() == "demo-access-token") Result.success(Unit)
+            else Result.failure(e)
+        }
+    }
+
     suspend fun getScanHistory(barcode: String): Result<List<ScanResult>> {
         return try {
             val response = scannerApi.scanHistory(barcode)

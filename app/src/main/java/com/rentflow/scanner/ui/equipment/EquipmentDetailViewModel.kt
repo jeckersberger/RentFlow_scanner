@@ -146,84 +146,60 @@ class EquipmentDetailViewModel @Inject constructor(
         }
     }
 
-    fun writeRfidTag() {
+    fun pairRfidTag() {
         val eq = _uiState.value.equipment ?: return
-
-        // First read the tag to check if it already has data
         viewModelScope.launch {
             _uiState.update { it.copy(isWritingRfid = true, rfidWriteResult = null, rfidVerified = false) }
 
-            // Try to read existing tag first
+            // Start RFID read to detect tag
             hardwareScanner.startRfidRead()
-            // Give it a moment to read
-            kotlinx.coroutines.delay(500)
-            hardwareScanner.stopRfid()
-
-            // Collect any tag that was read
-            var existingEpc: String? = null
+            var detectedEvent: RfidReadEvent? = null
             val readJob = viewModelScope.launch {
                 hardwareScanner.rfidReadEvents.collect { event ->
-                    existingEpc = event.epc
+                    detectedEvent = event
                 }
             }
-            kotlinx.coroutines.delay(600)
+            kotlinx.coroutines.delay(1500) // Give user time to hold tag near reader
             readJob.cancel()
-
-            if (existingEpc != null && existingEpc != eq.barcode && existingEpc != "0000000000000000") {
-                // Tag has existing data — show overwrite dialog
-                _uiState.update {
-                    it.copy(
-                        isWritingRfid = false,
-                        showOverwriteDialog = true,
-                        existingTagEpc = existingEpc,
-                    )
-                }
-            } else {
-                // Tag is empty or has same data — write directly
-                performWrite(eq.barcode)
-            }
-        }
-    }
-
-    fun confirmOverwrite() {
-        val eq = _uiState.value.equipment ?: return
-        _uiState.update { it.copy(showOverwriteDialog = false, existingTagEpc = null) }
-        viewModelScope.launch {
-            _uiState.update { it.copy(isWritingRfid = true) }
-            performWrite(eq.barcode)
-        }
-    }
-
-    fun dismissOverwrite() {
-        _uiState.update { it.copy(showOverwriteDialog = false, existingTagEpc = null, isWritingRfid = false) }
-    }
-
-    private suspend fun performWrite(epc: String) {
-        val result = hardwareScanner.writeRfidTag(epc)
-        if (result.success) {
-            // Verify by reading back
-            kotlinx.coroutines.delay(300)
-            hardwareScanner.startRfidRead()
-            var verifiedEpc: String? = null
-            val verifyJob = viewModelScope.launch {
-                hardwareScanner.rfidReadEvents.collect { event ->
-                    verifiedEpc = event.epc
-                }
-            }
-            kotlinx.coroutines.delay(600)
-            verifyJob.cancel()
             hardwareScanner.stopRfid()
 
-            val verified = verifiedEpc?.uppercase() == epc.uppercase()
-            _uiState.update {
-                it.copy(
-                    isWritingRfid = false,
-                    rfidWriteResult = result,
-                    rfidVerified = verified,
-                )
+            val event = detectedEvent
+            if (event == null) {
+                _uiState.update {
+                    it.copy(isWritingRfid = false, rfidWriteResult = RfidWriteResult(false, "Kein RFID-Tag erkannt. Bitte näher halten."))
+                }
+                return@launch
             }
-        } else {
-            _uiState.update { it.copy(isWritingRfid = false, rfidWriteResult = result) }
+
+            // Use TID as unique identifier (read-only, globally unique)
+            val tid = event.tid.ifBlank {
+                // Fallback: read TID explicitly
+                hardwareScanner.readTid(event.epc) ?: ""
+            }
+
+            val identifier = tid.ifBlank { event.epc } // Fallback to EPC if TID not readable
+
+            // Send pairing to backend: this TID belongs to this equipment
+            scannerRepository.pairRfidTag(eq.id, identifier).fold(
+                onSuccess = {
+                    _uiState.update {
+                        it.copy(
+                            isWritingRfid = false,
+                            rfidWriteResult = RfidWriteResult(true),
+                            rfidVerified = true,
+                            equipment = eq.copy(rfidTag = identifier),
+                        )
+                    }
+                },
+                onFailure = { e ->
+                    _uiState.update {
+                        it.copy(
+                            isWritingRfid = false,
+                            rfidWriteResult = RfidWriteResult(false, e.message),
+                        )
+                    }
+                },
+            )
         }
     }
 }

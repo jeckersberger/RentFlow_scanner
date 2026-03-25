@@ -39,44 +39,6 @@ fun EquipmentDetailScreen(
     val state by viewModel.uiState.collectAsState()
     var showLocationDialog by remember { mutableStateOf(false) }
 
-    // Overwrite confirmation dialog
-    if (state.showOverwriteDialog) {
-        AlertDialog(
-            onDismissRequest = viewModel::dismissOverwrite,
-            icon = {
-                Icon(Icons.Default.Warning, contentDescription = null, tint = Warning, modifier = Modifier.size(32.dp))
-            },
-            title = { Text(stringResource(R.string.rfid_overwrite_title)) },
-            text = {
-                Column {
-                    Text(stringResource(R.string.rfid_overwrite_existing))
-                    Spacer(Modifier.height(8.dp))
-                    Text(
-                        state.existingTagEpc ?: "",
-                        fontFamily = FontFamily.Monospace,
-                        fontWeight = FontWeight.Bold,
-                        color = Warning,
-                    )
-                    Spacer(Modifier.height(8.dp))
-                    Text(stringResource(R.string.rfid_overwrite_confirm))
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = viewModel::confirmOverwrite,
-                    colors = ButtonDefaults.buttonColors(containerColor = Warning),
-                ) {
-                    Text(stringResource(R.string.rfid_overwrite_button))
-                }
-            },
-            dismissButton = {
-                OutlinedButton(onClick = viewModel::dismissOverwrite) {
-                    Text(stringResource(R.string.cancel))
-                }
-            },
-        )
-    }
-
     // Location picker dialog
     if (showLocationDialog && state.zones.isNotEmpty()) {
         val currentLocation = state.equipment?.location
@@ -160,7 +122,7 @@ fun EquipmentDetailScreen(
                 }
 
                 Button(
-                    onClick = viewModel::writeRfidTag,
+                    onClick = viewModel::pairRfidTag,
                     enabled = !state.isWritingRfid,
                     modifier = Modifier.fillMaxWidth().height(56.dp),
                 ) {
@@ -213,7 +175,7 @@ fun EquipmentDetailScreen(
                                         fontWeight = FontWeight.Bold,
                                     )
                                     Spacer(Modifier.height(4.dp))
-                                    OutlinedButton(onClick = viewModel::writeRfidTag) {
+                                    OutlinedButton(onClick = viewModel::pairRfidTag) {
                                         Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
                                         Spacer(Modifier.width(4.dp))
                                         Text(stringResource(R.string.retry))

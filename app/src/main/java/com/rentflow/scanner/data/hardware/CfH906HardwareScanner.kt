@@ -53,7 +53,14 @@ class CfH906HardwareScanner(
             tag ?: return
             val epc = tag.epcId?.uppercase() ?: return
             val rssi = tag.rssi
-            _rfidReadEvents.tryEmit(RfidReadEvent(epc, rssi))
+            // Try to read TID (Memory Bank 2) for unique identification
+            val tid = try {
+                rfidReader.ReadData_G2(epc, 2.toByte(), 0, 6.toByte(), RFID_DEFAULT_PASSWORD)?.uppercase() ?: ""
+            } catch (e: Exception) {
+                Log.w(TAG, "Could not read TID for EPC $epc: ${e.message}")
+                ""
+            }
+            _rfidReadEvents.tryEmit(RfidReadEvent(epc, tid, rssi))
         }
 
         override fun StopReadCallBack() {
@@ -230,20 +237,15 @@ class CfH906HardwareScanner(
         }
     }
 
-    override suspend fun writeRfidTag(epc: String): RfidWriteResult {
-        if (!connectRfid()) {
-            return RfidWriteResult(false, "RFID not connected")
-        }
+    override suspend fun readTid(epc: String): String? {
+        if (!connectRfid()) return null
         return try {
-            val result = rfidReader.WriteEPC_G2(epc.uppercase(), RFID_DEFAULT_PASSWORD)
-            if (result == 0) {
-                RfidWriteResult(true)
-            } else {
-                RfidWriteResult(false, "Write failed with code: $result")
-            }
+            // Memory Bank 2 = TID, WordPtr 0, read 6 words (12 bytes)
+            val tid = rfidReader.ReadData_G2(epc, 2.toByte(), 0, 6.toByte(), RFID_DEFAULT_PASSWORD)
+            tid?.uppercase()
         } catch (e: Exception) {
-            Log.e(TAG, "Error writing RFID tag", e)
-            RfidWriteResult(false, e.message)
+            Log.e(TAG, "Error reading TID for EPC $epc", e)
+            null
         }
     }
 

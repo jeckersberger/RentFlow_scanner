@@ -24,6 +24,7 @@ class SettingsDataStore @Inject constructor(
     val scanMode: Flow<String> = context.dataStore.data.map { it[KEY_SCAN_MODE] ?: SCAN_MODE_BARCODE }
     val lockTimeoutMinutes: Flow<Int> = context.dataStore.data.map { it[KEY_LOCK_TIMEOUT] ?: DEFAULT_LOCK_TIMEOUT_MINUTES }
     val fullReloginHours: Flow<Int> = context.dataStore.data.map { it[KEY_FULL_RELOGIN] ?: DEFAULT_FULL_RELOGIN_HOURS }
+    val logoutTimeoutMinutes: Flow<Int> = context.dataStore.data.map { it[KEY_LOGOUT_TIMEOUT] ?: DEFAULT_LOGOUT_TIMEOUT_MINUTES }
 
     suspend fun setServerUrl(url: String) {
         context.dataStore.edit { it[KEY_SERVER_URL] = url }
@@ -45,16 +46,22 @@ class SettingsDataStore @Inject constructor(
         context.dataStore.edit { it[KEY_FULL_RELOGIN] = hours }
     }
 
+    suspend fun setLogoutTimeout(minutes: Int) {
+        context.dataStore.edit { it[KEY_LOGOUT_TIMEOUT] = minutes }
+    }
+
     companion object {
         const val DEFAULT_SERVER_URL = ""
         const val SCAN_MODE_BARCODE = "barcode"
         const val SCAN_MODE_RFID = "rfid"
         const val DEFAULT_LOCK_TIMEOUT_MINUTES = 30
         const val DEFAULT_FULL_RELOGIN_HOURS = 4
+        const val DEFAULT_LOGOUT_TIMEOUT_MINUTES = 60
         private val KEY_SERVER_URL = stringPreferencesKey("server_url")
         private val KEY_LANGUAGE = stringPreferencesKey("language")
         private val KEY_SCAN_MODE = stringPreferencesKey("scan_mode")
         private val KEY_LOCK_TIMEOUT = intPreferencesKey("lock_timeout_minutes")
         private val KEY_FULL_RELOGIN = intPreferencesKey("full_relogin_hours")
+        private val KEY_LOGOUT_TIMEOUT = intPreferencesKey("logout_timeout_minutes")
     }
 }

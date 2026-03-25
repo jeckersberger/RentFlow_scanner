@@ -15,7 +15,6 @@ import com.rentflow.scanner.data.service.FindMyScannerWorker
 import com.rentflow.scanner.data.service.LockState
 import com.rentflow.scanner.data.service.SessionTimeoutManager
 import com.rentflow.scanner.ui.findme.FindMeOverlay
-import com.rentflow.scanner.ui.lock.LockScreen
 import com.rentflow.scanner.ui.navigation.AppNavigation
 import com.rentflow.scanner.ui.navigation.Routes
 import com.rentflow.scanner.ui.theme.RentFlowScannerTheme
@@ -83,35 +82,6 @@ class MainActivity : AppCompatActivity() {
                             authRepository.logout()
                         }
                         AppNavigation(startDestination = Routes.LOGIN)
-                    }
-                    lockState == LockState.LOCKED -> {
-                        var lockError by remember { mutableStateOf<String?>(null) }
-                        var isUnlocking by remember { mutableStateOf(false) }
-
-                        LockScreen(
-                            onUnlock = { sessionTimeoutManager.unlock() },
-                            onFullLogin = {
-                                authRepository.logout()
-                                sessionTimeoutManager.requireFullLogin()
-                            },
-                            onQrLogin = {
-                                // Go to full login screen where QR scanner is available
-                                authRepository.logout()
-                                sessionTimeoutManager.requireFullLogin()
-                            },
-                            onPasswordSubmit = { password ->
-                                isUnlocking = true
-                                lockError = null
-                                if (authRepository.isLoggedIn()) {
-                                    sessionTimeoutManager.unlock()
-                                } else {
-                                    lockError = "Falsches Passwort"
-                                }
-                                isUnlocking = false
-                            },
-                            error = lockError,
-                            isLoading = isUnlocking,
-                        )
                     }
                     else -> {
                         AppNavigation(startDestination = startDest)
