@@ -11,7 +11,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.rentflow.scanner.R
 import com.rentflow.scanner.domain.model.Equipment
 import com.rentflow.scanner.ui.theme.Warning
 
@@ -38,7 +40,7 @@ fun EquipmentCard(
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
                     if (adHoc) {
                         Text(
-                            "SPONTAN",
+                            stringResource(R.string.spontan),
                             style = MaterialTheme.typography.labelSmall,
                             fontWeight = FontWeight.Bold,
                             color = Warning,
@@ -62,13 +64,13 @@ fun EquipmentCard(
                 }
             }
             Spacer(Modifier.height(8.dp))
-            Text("Barcode: ${equipment.barcode}", style = MaterialTheme.typography.bodyMedium)
-            Text("Kategorie: ${equipment.category}", style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.equipment_barcode, equipment.barcode), style = MaterialTheme.typography.bodyMedium)
+            Text(stringResource(R.string.equipment_category, equipment.category), style = MaterialTheme.typography.bodyMedium)
             equipment.location?.let {
-                Text("Standort: $it", style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.equipment_location, it), style = MaterialTheme.typography.bodyMedium)
             }
             equipment.projectName?.let {
-                Text("Projekt: $it", style = MaterialTheme.typography.bodyMedium)
+                Text(stringResource(R.string.equipment_project, it), style = MaterialTheme.typography.bodyMedium)
             }
         }
     }

@@ -45,11 +45,11 @@ fun LockScreen(
         )
         Spacer(Modifier.height(16.dp))
         Text(
-            "Sitzung gesperrt",
+            stringResource(R.string.lock_title),
             style = MaterialTheme.typography.headlineMedium,
         )
         Text(
-            "Bitte erneut anmelden",
+            stringResource(R.string.lock_subtitle),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -88,14 +88,14 @@ fun LockScreen(
             if (isLoading) {
                 CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
             } else {
-                Text("Entsperren")
+                Text(stringResource(R.string.lock_unlock))
             }
         }
 
         Spacer(Modifier.height(16.dp))
 
         TextButton(onClick = onFullLogin) {
-            Text("Anderer Benutzer / Vollständiger Login")
+            Text(stringResource(R.string.lock_switch_user))
         }
     }
 }

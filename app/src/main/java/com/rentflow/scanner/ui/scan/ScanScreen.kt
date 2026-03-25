@@ -128,36 +128,18 @@ fun ScanScreen(
                 )
                 Spacer(Modifier.height(16.dp))
 
-                if (isRfidMode) {
-                    Text(
-                        if (state.isScanning) "RFID liest..." else "RFID bereit",
-                        style = MaterialTheme.typography.headlineSmall,
-                        color = if (state.isScanning) Cyan else MaterialTheme.colorScheme.onSurface,
-                    )
-                    Spacer(Modifier.height(16.dp))
-                    Button(
-                        onClick = { viewModel.toggleRfidScan() },
-                        modifier = Modifier.fillMaxWidth().height(56.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (state.isScanning) MaterialTheme.colorScheme.error else Cyan,
-                        ),
-                    ) {
-                        Icon(
-                            if (state.isScanning) Icons.Default.Stop else Icons.Default.PlayArrow,
-                            contentDescription = null,
-                            modifier = Modifier.padding(end = 8.dp),
-                        )
-                        Text(if (state.isScanning) "Scan stoppen" else "RFID Scan starten")
-                    }
-                } else {
-                    Text(
-                        "Barcode — Trigger drücken",
-                        style = MaterialTheme.typography.headlineSmall,
-                    )
-                }
+                Text(
+                    if (isRfidMode) {
+                        if (state.isScanning) stringResource(R.string.scan_rfid_reading) else stringResource(R.string.scan_rfid_trigger)
+                    } else {
+                        stringResource(R.string.scan_barcode_trigger)
+                    },
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = if (state.isScanning) Cyan else MaterialTheme.colorScheme.onSurface,
+                )
 
                 Text(
-                    if (isRfidMode) "Modus: RFID" else "Modus: Barcode",
+                    if (isRfidMode) stringResource(R.string.scan_mode_rfid) else stringResource(R.string.scan_mode_barcode),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -171,7 +153,7 @@ fun ScanScreen(
                 if (isRfidMode && state.rfidTags.isNotEmpty()) {
                     Spacer(Modifier.height(24.dp))
                     Text(
-                        "${state.rfidTags.size} Tag(s) gefunden",
+                        stringResource(R.string.scan_tags_found, state.rfidTags.size),
                         style = MaterialTheme.typography.titleMedium,
                         color = Cyan,
                     )
@@ -208,7 +190,7 @@ fun ScanScreen(
                     }
                     Spacer(Modifier.height(8.dp))
                     OutlinedButton(onClick = { viewModel.clearResult() }) {
-                        Text("Tags leeren")
+                        Text(stringResource(R.string.scan_tags_clear))
                     }
                 }
             }

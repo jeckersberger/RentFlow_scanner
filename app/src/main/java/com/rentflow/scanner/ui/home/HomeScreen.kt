@@ -69,7 +69,7 @@ fun HomeScreen(
             }
 
             if (state.userName.isNotBlank()) {
-                Text("Hallo, ${state.userName}", style = MaterialTheme.typography.headlineMedium)
+                Text(stringResource(R.string.hello_user, state.userName), style = MaterialTheme.typography.headlineMedium)
             }
 
             WorkflowCard(Icons.Default.QrCodeScanner, stringResource(R.string.nav_scan), onClick = onNavigateToScan)

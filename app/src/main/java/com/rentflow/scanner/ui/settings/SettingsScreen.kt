@@ -92,7 +92,7 @@ fun SettingsScreen(
             }
             if (state.saved) {
                 Spacer(Modifier.height(16.dp))
-                Text("Gespeichert", color = Success)
+                Text(stringResource(R.string.saved), color = Success)
             }
 
             Spacer(Modifier.height(32.dp))
@@ -123,16 +123,16 @@ fun SettingsScreen(
                     Row {
                         CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
                         Spacer(Modifier.width(8.dp))
-                        Text("Download läuft...", color = Cyan)
+                        Text(stringResource(R.string.update_downloading), color = Cyan)
                     }
                 }
                 DownloadState.INSTALLING -> {
                     Spacer(Modifier.height(8.dp))
-                    Text("Installation wird vorbereitet...", color = Success)
+                    Text(stringResource(R.string.update_installing), color = Success)
                 }
                 DownloadState.FAILED -> {
                     Spacer(Modifier.height(8.dp))
-                    Text("Download fehlgeschlagen. Erneut versuchen.", color = MaterialTheme.colorScheme.error)
+                    Text(stringResource(R.string.update_failed), color = MaterialTheme.colorScheme.error)
                 }
                 DownloadState.IDLE -> {}
             }

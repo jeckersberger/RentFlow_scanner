@@ -144,9 +144,9 @@ fun CheckOutScreen(
                             Icon(Icons.Default.Sensors, contentDescription = null, tint = Cyan)
                             Spacer(Modifier.width(8.dp))
                             Column(modifier = Modifier.weight(1f)) {
-                                Text("RFID Bulk-Scan aktiv", fontWeight = FontWeight.Bold, color = Cyan)
+                                Text(stringResource(R.string.checkout_rfid_bulk), fontWeight = FontWeight.Bold, color = Cyan)
                                 Text(
-                                    "Tags werden automatisch erfasst",
+                                    stringResource(R.string.checkout_rfid_auto_hint),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 )
@@ -160,7 +160,7 @@ fun CheckOutScreen(
                 }
 
                 Text(
-                    "${state.scannedItems.size} Geräte gescannt",
+                    stringResource(R.string.checkout_items_scanned, state.scannedItems.size),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )

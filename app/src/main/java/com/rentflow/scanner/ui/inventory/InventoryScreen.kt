@@ -70,7 +70,7 @@ fun InventoryScreen(
                             Column(modifier = Modifier.padding(16.dp)) {
                                 Text(zone.name, style = MaterialTheme.typography.bodyLarge)
                                 Text(
-                                    "Soll: ${zone.expectedItemCount} Items",
+                                    stringResource(R.string.inventory_soll_items, zone.expectedItemCount),
                                     style = MaterialTheme.typography.bodyMedium,
                                 )
                             }
@@ -97,13 +97,13 @@ fun InventoryScreen(
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Text(
-                            "Gefunden: $foundCount / Soll: $expectedCount",
+                            stringResource(R.string.inventory_found_of, foundCount, expectedCount),
                             style = MaterialTheme.typography.titleMedium,
                             color = if (foundCount == expectedCount && expectedCount > 0) Success else Cyan,
                         )
                         if (state.unexpectedItems.isNotEmpty()) {
                             Text(
-                                "+${state.unexpectedItems.size} unerwartet",
+                                stringResource(R.string.inventory_unexpected_count, state.unexpectedItems.size),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = Warning,
                             )
@@ -132,7 +132,7 @@ fun InventoryScreen(
                         selected = selectedFilter == InventoryFilter.ALL,
                         onClick = { selectedFilter = InventoryFilter.ALL },
                         label = {
-                            Text("Alle (${state.scannedItems.size + state.missingItems.size})")
+                            Text(stringResource(R.string.inventory_all, state.scannedItems.size + state.missingItems.size))
                         },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = Cyan.copy(alpha = 0.2f),
@@ -142,7 +142,7 @@ fun InventoryScreen(
                     FilterChip(
                         selected = selectedFilter == InventoryFilter.FOUND,
                         onClick = { selectedFilter = InventoryFilter.FOUND },
-                        label = { Text("Gefunden (${state.foundItems.size})") },
+                        label = { Text(stringResource(R.string.inventory_found_count, state.foundItems.size)) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = Success.copy(alpha = 0.2f),
                             selectedLabelColor = Success,
@@ -151,7 +151,7 @@ fun InventoryScreen(
                     FilterChip(
                         selected = selectedFilter == InventoryFilter.MISSING,
                         onClick = { selectedFilter = InventoryFilter.MISSING },
-                        label = { Text("Fehlend (${state.missingItems.size})") },
+                        label = { Text(stringResource(R.string.inventory_missing_count, state.missingItems.size)) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = Error.copy(alpha = 0.2f),
                             selectedLabelColor = Error,
@@ -160,7 +160,7 @@ fun InventoryScreen(
                     FilterChip(
                         selected = selectedFilter == InventoryFilter.UNEXPECTED,
                         onClick = { selectedFilter = InventoryFilter.UNEXPECTED },
-                        label = { Text("Unerwartet (${state.unexpectedItems.size})") },
+                        label = { Text(stringResource(R.string.inventory_unexpected_count_filter, state.unexpectedItems.size)) },
                         colors = FilterChipDefaults.filterChipColors(
                             selectedContainerColor = Warning.copy(alpha = 0.2f),
                             selectedLabelColor = Warning,
@@ -203,10 +203,10 @@ fun InventoryScreen(
                             ) {
                                 Text(
                                     when (selectedFilter) {
-                                        InventoryFilter.ALL -> "Noch keine Items. Starte den Scan!"
-                                        InventoryFilter.FOUND -> "Noch keine Items gefunden"
-                                        InventoryFilter.MISSING -> "Alle erwartet Items wurden gefunden!"
-                                        InventoryFilter.UNEXPECTED -> "Keine unerwarteten Items"
+                                        InventoryFilter.ALL -> stringResource(R.string.inventory_empty_all)
+                                        InventoryFilter.FOUND -> stringResource(R.string.inventory_empty_found)
+                                        InventoryFilter.MISSING -> stringResource(R.string.inventory_empty_missing)
+                                        InventoryFilter.UNEXPECTED -> stringResource(R.string.inventory_empty_unexpected)
                                     },
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -259,9 +259,9 @@ private fun InventoryItemCard(
                     )
                     Text(
                         when (statusColor) {
-                            Success -> "Gefunden"
-                            Error -> "Fehlend"
-                            Warning -> "Unerwartet"
+                            Success -> stringResource(R.string.inventory_status_found)
+                            Error -> stringResource(R.string.inventory_status_missing)
+                            Warning -> stringResource(R.string.inventory_status_unexpected)
                             else -> ""
                         },
                         style = MaterialTheme.typography.labelSmall,
@@ -275,13 +275,13 @@ private fun InventoryItemCard(
                 }
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    "Barcode: ${equipment.barcode}",
+                    stringResource(R.string.equipment_barcode, equipment.barcode),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 equipment.category.takeIf { it.isNotBlank() }?.let {
                     Text(
-                        "Kategorie: $it",
+                        stringResource(R.string.equipment_category, it),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

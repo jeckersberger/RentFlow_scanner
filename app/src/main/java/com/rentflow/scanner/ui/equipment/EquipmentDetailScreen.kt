@@ -42,7 +42,7 @@ fun EquipmentDetailScreen(
             title = { Text(stringResource(R.string.rfid_overwrite_title)) },
             text = {
                 Column {
-                    Text("Tag enthält bereits Daten:")
+                    Text(stringResource(R.string.rfid_overwrite_existing))
                     Spacer(Modifier.height(8.dp))
                     Text(
                         state.existingTagEpc ?: "",
@@ -51,7 +51,7 @@ fun EquipmentDetailScreen(
                         color = Warning,
                     )
                     Spacer(Modifier.height(8.dp))
-                    Text("Soll der Tag überschrieben werden?")
+                    Text(stringResource(R.string.rfid_overwrite_confirm))
                 }
             },
             confirmButton = {
@@ -59,7 +59,7 @@ fun EquipmentDetailScreen(
                     onClick = viewModel::confirmOverwrite,
                     colors = ButtonDefaults.buttonColors(containerColor = Warning),
                 ) {
-                    Text("Überschreiben")
+                    Text(stringResource(R.string.rfid_overwrite_button))
                 }
             },
             dismissButton = {
@@ -75,7 +75,7 @@ fun EquipmentDetailScreen(
         val currentLocation = state.equipment?.location
         AlertDialog(
             onDismissRequest = { showLocationDialog = false },
-            title = { Text("Lagerort wählen") },
+            title = { Text(stringResource(R.string.equipment_select_location)) },
             text = {
                 LazyColumn {
                     items(state.zones) { zone ->
@@ -136,7 +136,7 @@ fun EquipmentDetailScreen(
                     colors = ButtonDefaults.buttonColors(containerColor = Cyan),
                 ) {
                     Icon(Icons.Default.EditLocationAlt, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
-                    Text("Lagerort ändern")
+                    Text(stringResource(R.string.equipment_change_location))
                 }
 
                 state.locationSaved?.let {
@@ -148,7 +148,7 @@ fun EquipmentDetailScreen(
 
                 // RFID section
                 state.equipment!!.rfidTag?.let {
-                    Text("RFID: $it", style = MaterialTheme.typography.bodyLarge)
+                    Text(stringResource(R.string.equipment_rfid_label, it), style = MaterialTheme.typography.bodyLarge)
                     Spacer(Modifier.height(16.dp))
                 }
 
@@ -160,7 +160,7 @@ fun EquipmentDetailScreen(
                     if (state.isWritingRfid) {
                         CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
                         Spacer(Modifier.width(8.dp))
-                        Text("Schreibe...")
+                        Text(stringResource(R.string.rfid_writing))
                     } else {
                         Icon(Icons.Default.Nfc, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
                         Text(stringResource(R.string.equipment_write_rfid))
@@ -182,11 +182,11 @@ fun EquipmentDetailScreen(
                                 )
                                 Spacer(Modifier.width(8.dp))
                                 Column {
-                                    Text("RFID-Tag erfolgreich geschrieben", color = Success, fontWeight = FontWeight.Bold)
+                                    Text(stringResource(R.string.rfid_write_success), color = Success, fontWeight = FontWeight.Bold)
                                     if (state.rfidVerified) {
-                                        Text("Verifiziert: Tag-Inhalt stimmt überein", style = MaterialTheme.typography.bodySmall, color = Success)
+                                        Text(stringResource(R.string.rfid_write_verified), style = MaterialTheme.typography.bodySmall, color = Success)
                                     } else {
-                                        Text("Verifikation ausstehend", style = MaterialTheme.typography.bodySmall, color = Warning)
+                                        Text(stringResource(R.string.rfid_write_not_verified), style = MaterialTheme.typography.bodySmall, color = Warning)
                                     }
                                 }
                             }

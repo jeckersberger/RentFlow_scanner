@@ -11,7 +11,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.rentflow.scanner.R
 import com.rentflow.scanner.data.service.UpdateInfo
 import com.rentflow.scanner.ui.theme.Cyan
 
@@ -42,7 +44,7 @@ fun UpdateBanner(
             Spacer(Modifier.width(12.dp))
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    "Update verfügbar: v${updateInfo.versionName}",
+                    stringResource(R.string.update_available, updateInfo.versionName),
                     style = MaterialTheme.typography.bodyLarge,
                     fontWeight = FontWeight.Bold,
                     color = Cyan,
@@ -59,7 +61,7 @@ fun UpdateBanner(
                 onClick = onUpdate,
                 colors = ButtonDefaults.buttonColors(containerColor = Cyan),
             ) {
-                Text("Update", color = MaterialTheme.colorScheme.surface)
+                Text(stringResource(R.string.update_button), color = MaterialTheme.colorScheme.surface)
             }
         }
     }

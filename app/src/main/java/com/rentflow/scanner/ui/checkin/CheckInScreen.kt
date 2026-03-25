@@ -130,7 +130,7 @@ fun CheckInScreen(
                 )
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "${state.scannedItems.size} Geräte gescannt",
+                    stringResource(R.string.checkin_items_scanned, state.scannedItems.size),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -211,11 +211,11 @@ private fun CheckInItemCard(
                 Spacer(Modifier.width(8.dp))
                 Text(
                     when (item.condition) {
-                        1 -> "Defekt"
-                        2 -> "Beschädigt"
-                        3 -> "Gebrauchsspuren"
-                        4 -> "Gut"
-                        5 -> "Einwandfrei"
+                        1 -> stringResource(R.string.checkin_condition_1)
+                        2 -> stringResource(R.string.checkin_condition_2)
+                        3 -> stringResource(R.string.checkin_condition_3)
+                        4 -> stringResource(R.string.checkin_condition_4)
+                        5 -> stringResource(R.string.checkin_condition_5)
                         else -> ""
                     },
                     style = MaterialTheme.typography.bodySmall,
@@ -242,7 +242,7 @@ private fun CheckInItemCard(
                 OutlinedButton(onClick = onPhoto) {
                     Icon(Icons.Default.CameraAlt, contentDescription = null, modifier = Modifier.size(18.dp))
                     Spacer(Modifier.width(6.dp))
-                    Text(if (item.photoUri != null) "Foto ändern" else stringResource(R.string.checkin_photo))
+                    Text(if (item.photoUri != null) stringResource(R.string.checkin_photo_change) else stringResource(R.string.checkin_photo))
                 }
                 item.photoUri?.let { uri ->
                     Spacer(Modifier.width(12.dp))
@@ -273,7 +273,7 @@ private fun JobCard(project: Project, onClick: () -> Unit) {
             }
             project.end_date?.let {
                 Text(
-                    "Rückgabe: $it",
+                    stringResource(R.string.checkin_return_date, it),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
