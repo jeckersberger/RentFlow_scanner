@@ -3,6 +3,7 @@ package com.rentflow.scanner.data.hardware
 import android.content.Context
 import android.device.ScanManager
 import android.device.scanner.configuration.PropertyID
+import android.device.scanner.configuration.Triggering
 import android.util.Log
 import com.rfid.trans.ReadTag
 import com.rfid.trans.ReaderHelp
@@ -92,6 +93,8 @@ class CfH906HardwareScanner(
                     isBarcodeOpen = true
                     // Switch to intent output mode (broadcasts result)
                     scanManager?.switchOutputMode(0)
+                    // Trigger mode: PULSE = hardware trigger activates scanner
+                    try { scanManager?.setTriggerMode(Triggering.PULSE) } catch (_: Exception) {}
                     // Disable keyboard wedge so we get broadcast instead
                     scanManager?.setParameterInts(
                         intArrayOf(PropertyID.WEDGE_KEYBOARD_ENABLE),
@@ -130,25 +133,19 @@ class CfH906HardwareScanner(
         try {
             if (isBarcodeOpen) {
                 scanManager?.stopDecode()
-                scanManager?.closeScanner()
+                // Switch to HOST mode — trigger key no longer captured by ScanManager
+                try {
+                    scanManager?.setTriggerMode(Triggering.HOST)
+                    Log.d(TAG, "Barcode trigger set to HOST mode (keys pass through)")
+                } catch (_: Exception) {
+                    // Fallback: close scanner entirely
+                    scanManager?.closeScanner()
+                    scanManager = null
+                    Log.d(TAG, "Barcode scanner closed (HOST mode not available)")
+                }
                 try { context.unregisterReceiver(broadcastReceiver) } catch (_: Exception) {}
                 isBarcodeOpen = false
-                scanManager = null
-                Log.d(TAG, "Barcode scanner closed")
             }
-            // Disable the system scan service so trigger keys pass through to the app
-            try {
-                val sm = ScanManager()
-                sm.openScanner()
-                sm.switchOutputMode(0) // intent mode
-                // Disable all trigger actions — keys will be forwarded as KeyEvents
-                sm.setParameterInts(
-                    intArrayOf(PropertyID.TRIGGERING_MODES),
-                    intArrayOf(0)
-                )
-                sm.closeScanner()
-                Log.d(TAG, "System scan trigger disabled for RFID mode")
-            } catch (_: Exception) {}
         } catch (e: Exception) {
             Log.e(TAG, "Error closing barcode scanner", e)
         }
