@@ -6,8 +6,10 @@ import android.content.Context
 import android.content.Intent
 import android.content.IntentFilter
 import android.net.Uri
+import android.os.Build
 import android.os.Environment
 import android.util.Log
+import android.widget.Toast
 import androidx.core.content.FileProvider
 import com.rentflow.scanner.BuildConfig
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -15,7 +17,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.withContext
-import org.json.JSONArray
 import java.io.File
 import java.net.HttpURLConnection
 import java.net.URL
@@ -43,10 +44,11 @@ class AppUpdateService @Inject constructor(
     private val _updateAvailable = MutableStateFlow<UpdateInfo?>(null)
     val updateAvailable: StateFlow<UpdateInfo?> = _updateAvailable
 
-    private val _downloadProgress = MutableStateFlow(-1) // -1 = not downloading
-    val downloadProgress: StateFlow<Int> = _downloadProgress
+    private val _downloadState = MutableStateFlow(DownloadState.IDLE)
+    val downloadState: StateFlow<DownloadState> = _downloadState
 
     private var downloadId: Long = -1
+    private var downloadReceiver: BroadcastReceiver? = null
 
     suspend fun checkForUpdate(): UpdateInfo? = withContext(Dispatchers.IO) {
         try {
@@ -63,11 +65,10 @@ class AppUpdateService @Inject constructor(
             val response = connection.inputStream.bufferedReader().readText()
             val json = org.json.JSONObject(response)
 
-            val tagName = json.getString("tag_name") // e.g. "v1.2"
+            val tagName = json.getString("tag_name")
             val changelog = json.optString("body", "")
             val assets = json.getJSONArray("assets")
 
-            // Find the APK asset
             var apkUrl: String? = null
             var apkSize: Long = 0
             for (i in 0 until assets.length()) {
@@ -84,11 +85,9 @@ class AppUpdateService @Inject constructor(
                 return@withContext null
             }
 
-            // Parse version from tag (v1.2 -> 1.2)
             val remoteVersion = tagName.removePrefix("v")
             val currentVersion = BuildConfig.VERSION_NAME
 
-            // Compare versions
             if (isNewerVersion(remoteVersion, currentVersion)) {
                 val info = UpdateInfo(
                     versionName = remoteVersion,
@@ -112,40 +111,86 @@ class AppUpdateService @Inject constructor(
     }
 
     fun downloadAndInstall(updateInfo: UpdateInfo) {
-        val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
+        if (_downloadState.value == DownloadState.DOWNLOADING) return
 
-        // Clean up old APKs
-        val downloadDir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
-        downloadDir?.listFiles()?.filter { it.name.endsWith(".apk") }?.forEach { it.delete() }
+        try {
+            val downloadManager = context.getSystemService(Context.DOWNLOAD_SERVICE) as DownloadManager
 
-        val request = DownloadManager.Request(Uri.parse(updateInfo.downloadUrl))
-            .setTitle("RentFlow Scanner v${updateInfo.versionName}")
-            .setDescription("Update wird heruntergeladen...")
-            .setDestinationInExternalFilesDir(
-                context,
-                Environment.DIRECTORY_DOWNLOADS,
-                "rentflow-scanner-${updateInfo.versionName}.apk"
-            )
-            .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+            // Clean up old APKs
+            val downloadDir = context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS)
+            downloadDir?.listFiles()?.filter { it.name.endsWith(".apk") }?.forEach { it.delete() }
 
-        downloadId = downloadManager.enqueue(request)
-        _downloadProgress.value = 0
+            val request = DownloadManager.Request(Uri.parse(updateInfo.downloadUrl))
+                .setTitle("RentFlow Scanner v${updateInfo.versionName}")
+                .setDescription("Update wird heruntergeladen...")
+                .setDestinationInExternalFilesDir(
+                    context,
+                    Environment.DIRECTORY_DOWNLOADS,
+                    "rentflow-scanner-${updateInfo.versionName}.apk"
+                )
+                .setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED)
+                .setAllowedOverMetered(true)
+                .setAllowedOverRoaming(true)
 
-        // Register receiver for download complete
-        context.registerReceiver(
-            object : BroadcastReceiver() {
+            downloadId = downloadManager.enqueue(request)
+            _downloadState.value = DownloadState.DOWNLOADING
+            Log.d(TAG, "Download started, id=$downloadId, url=${updateInfo.downloadUrl}")
+
+            showToast("Download gestartet...")
+
+            // Unregister any previous receiver
+            downloadReceiver?.let {
+                try { context.unregisterReceiver(it) } catch (_: Exception) {}
+            }
+
+            // Register receiver for download complete
+            downloadReceiver = object : BroadcastReceiver() {
                 override fun onReceive(ctx: Context?, intent: Intent?) {
                     val id = intent?.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1)
-                    if (id == downloadId) {
-                        _downloadProgress.value = 100
-                        installApk(updateInfo.versionName)
-                        try { context.unregisterReceiver(this) } catch (_: Exception) {}
+                    if (id != downloadId) return
+
+                    // Check download status
+                    val query = DownloadManager.Query().setFilterById(downloadId)
+                    val cursor = downloadManager.query(query)
+                    if (cursor != null && cursor.moveToFirst()) {
+                        val statusIndex = cursor.getColumnIndex(DownloadManager.COLUMN_STATUS)
+                        val status = cursor.getInt(statusIndex)
+                        cursor.close()
+
+                        if (status == DownloadManager.STATUS_SUCCESSFUL) {
+                            Log.d(TAG, "Download complete, installing...")
+                            _downloadState.value = DownloadState.INSTALLING
+                            showToast("Download abgeschlossen, installiere...")
+                            installApk(updateInfo.versionName)
+                        } else {
+                            Log.e(TAG, "Download failed with status: $status")
+                            _downloadState.value = DownloadState.FAILED
+                            showToast("Download fehlgeschlagen (Status: $status)")
+                        }
+                    } else {
+                        cursor?.close()
+                        Log.e(TAG, "Download query returned no results")
+                        _downloadState.value = DownloadState.FAILED
+                        showToast("Download fehlgeschlagen")
                     }
+
+                    try { context.unregisterReceiver(this) } catch (_: Exception) {}
+                    downloadReceiver = null
                 }
-            },
-            IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE),
-            Context.RECEIVER_NOT_EXPORTED,
-        )
+            }
+
+            val filter = IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                context.registerReceiver(downloadReceiver, filter, Context.RECEIVER_EXPORTED)
+            } else {
+                context.registerReceiver(downloadReceiver, filter)
+            }
+
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to start download", e)
+            _downloadState.value = DownloadState.FAILED
+            showToast("Download konnte nicht gestartet werden: ${e.message}")
+        }
     }
 
     private fun installApk(version: String) {
@@ -155,21 +200,40 @@ class AppUpdateService @Inject constructor(
         )
         if (!file.exists()) {
             Log.e(TAG, "Downloaded APK not found: ${file.absolutePath}")
+            _downloadState.value = DownloadState.FAILED
+            showToast("APK-Datei nicht gefunden")
             return
         }
 
-        val uri = FileProvider.getUriForFile(
-            context,
-            "${context.packageName}.fileprovider",
-            file,
-        )
+        Log.d(TAG, "Installing APK: ${file.absolutePath} (${file.length()} bytes)")
 
-        val intent = Intent(Intent.ACTION_VIEW).apply {
-            setDataAndType(uri, "application/vnd.android.package-archive")
-            addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        try {
+            val uri = FileProvider.getUriForFile(
+                context,
+                "${context.packageName}.fileprovider",
+                file,
+            )
+
+            val intent = Intent(Intent.ACTION_VIEW).apply {
+                setDataAndType(uri, "application/vnd.android.package-archive")
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+            }
+            context.startActivity(intent)
+            _downloadState.value = DownloadState.IDLE
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to launch installer", e)
+            _downloadState.value = DownloadState.FAILED
+            showToast("Installation konnte nicht gestartet werden: ${e.message}")
         }
-        context.startActivity(intent)
+    }
+
+    private fun showToast(message: String) {
+        try {
+            android.os.Handler(android.os.Looper.getMainLooper()).post {
+                Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+            }
+        } catch (_: Exception) {}
     }
 
     private fun isNewerVersion(remote: String, current: String): Boolean {
@@ -188,4 +252,8 @@ class AppUpdateService @Inject constructor(
         val parts = version.split(".").map { it.toIntOrNull() ?: 0 }
         return parts.getOrElse(0) { 0 } * 1000 + parts.getOrElse(1) { 0 }
     }
+}
+
+enum class DownloadState {
+    IDLE, DOWNLOADING, INSTALLING, FAILED
 }

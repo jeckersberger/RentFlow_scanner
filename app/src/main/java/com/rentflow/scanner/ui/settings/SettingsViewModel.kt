@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.rentflow.scanner.data.preferences.SettingsDataStore
 import com.rentflow.scanner.data.service.AppUpdateService
+import com.rentflow.scanner.data.service.DownloadState
 import com.rentflow.scanner.data.service.UpdateInfo
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,6 +20,7 @@ data class SettingsUiState(
     val saved: Boolean = false,
     val updateInfo: UpdateInfo? = null,
     val isCheckingUpdate: Boolean = false,
+    val downloadState: DownloadState = DownloadState.IDLE,
 )
 
 @HiltViewModel
@@ -48,6 +50,11 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             updateService.updateAvailable.collect { info ->
                 _uiState.update { it.copy(updateInfo = info) }
+            }
+        }
+        viewModelScope.launch {
+            updateService.downloadState.collect { state ->
+                _uiState.update { it.copy(downloadState = state) }
             }
         }
     }

@@ -14,7 +14,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import com.rentflow.scanner.BuildConfig
 import com.rentflow.scanner.R
 import com.rentflow.scanner.data.preferences.SettingsDataStore
+import com.rentflow.scanner.data.service.DownloadState
 import com.rentflow.scanner.ui.components.UpdateBanner
+import com.rentflow.scanner.ui.theme.Cyan
 import com.rentflow.scanner.ui.theme.Success
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -61,7 +63,7 @@ fun SettingsScreen(
                 )
             }
             Spacer(Modifier.height(24.dp))
-            Text("Scan-Modus", style = MaterialTheme.typography.titleLarge)
+            Text(stringResource(R.string.settings_scan_mode), style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(8.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 FilterChip(
@@ -90,7 +92,7 @@ fun SettingsScreen(
             }
             if (state.saved) {
                 Spacer(Modifier.height(16.dp))
-                Text("Gespeichert. App-Neustart erforderlich.", color = Success)
+                Text(stringResource(R.string.settings_saved), color = Success)
             }
 
             Spacer(Modifier.height(32.dp))
@@ -98,7 +100,7 @@ fun SettingsScreen(
             Spacer(Modifier.height(16.dp))
 
             // Version & Update
-            Text("App-Version", style = MaterialTheme.typography.titleLarge)
+            Text(stringResource(R.string.settings_version), style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(8.dp))
             Text(
                 "v${BuildConfig.VERSION_NAME} (Build ${BuildConfig.VERSION_CODE})",
@@ -114,16 +116,42 @@ fun SettingsScreen(
                 )
             }
 
+            // Download state feedback
+            when (state.downloadState) {
+                DownloadState.DOWNLOADING -> {
+                    Spacer(Modifier.height(8.dp))
+                    Row {
+                        CircularProgressIndicator(modifier = Modifier.size(20.dp), strokeWidth = 2.dp)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Download läuft...", color = Cyan)
+                    }
+                }
+                DownloadState.INSTALLING -> {
+                    Spacer(Modifier.height(8.dp))
+                    Text("Installation wird vorbereitet...", color = Success)
+                }
+                DownloadState.FAILED -> {
+                    Spacer(Modifier.height(8.dp))
+                    Text("Download fehlgeschlagen. Erneut versuchen.", color = MaterialTheme.colorScheme.error)
+                }
+                DownloadState.IDLE -> {}
+            }
+
+            Spacer(Modifier.height(12.dp))
+
             OutlinedButton(
                 onClick = { viewModel.checkForUpdate() },
                 modifier = Modifier.fillMaxWidth(),
-                enabled = !state.isCheckingUpdate,
+                enabled = !state.isCheckingUpdate && state.downloadState != DownloadState.DOWNLOADING,
             ) {
                 if (state.isCheckingUpdate) {
                     CircularProgressIndicator(modifier = Modifier.size(18.dp), strokeWidth = 2.dp)
                     Spacer(Modifier.width(8.dp))
                 }
-                Text(if (state.isCheckingUpdate) "Prüfe..." else "Nach Updates suchen")
+                Text(
+                    if (state.isCheckingUpdate) stringResource(R.string.settings_checking)
+                    else stringResource(R.string.settings_check_update)
+                )
             }
         }
     }
