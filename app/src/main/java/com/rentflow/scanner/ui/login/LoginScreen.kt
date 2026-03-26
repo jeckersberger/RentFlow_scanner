@@ -82,7 +82,7 @@ fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Text(
-                text = "RentFlow",
+                text = "EquipFlow",
                 style = MaterialTheme.typography.headlineLarge,
                 color = Cyan,
             )
