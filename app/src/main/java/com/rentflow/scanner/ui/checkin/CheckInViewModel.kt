@@ -271,8 +271,14 @@ class CheckInViewModel @Inject constructor(
         val state = _uiState.value
         if (state.sessionId == null) return
         _uiState.update { it.copy(showSignature = false, isLoading = true) }
-        // TODO: Upload signature bitmap to server when backend available
         viewModelScope.launch {
+            // Upload signature if available
+            if (signatureBitmap != null && !state.sessionId.startsWith("local-")) {
+                val stream = java.io.ByteArrayOutputStream()
+                signatureBitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, stream)
+                val base64 = android.util.Base64.encodeToString(stream.toByteArray(), android.util.Base64.NO_WRAP)
+                scannerRepository.uploadSignature(state.sessionId, base64)
+            }
             scannerRepository.endSession(state.sessionId).fold(
                 onSuccess = { _uiState.update { it.copy(isLoading = false, showSummary = true) } },
                 onFailure = {

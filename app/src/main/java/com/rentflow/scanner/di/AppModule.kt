@@ -24,28 +24,30 @@ import javax.inject.Singleton
 @InstallIn(SingletonComponent::class)
 object AppModule {
 
+    private const val PLACEHOLDER_BASE_URL = "http://localhost/"
+
     @Provides
     @Singleton
-    fun provideBaseUrl(settingsDataStore: SettingsDataStore): String {
-        val url = runBlocking { settingsDataStore.serverUrl.first() }
-        val base = url.ifBlank { SettingsDataStore.DEFAULT_SERVER_URL }
-        return if (base.endsWith("/")) base else "$base/"
+    fun provideDynamicBaseUrlInterceptor(settingsDataStore: SettingsDataStore): DynamicBaseUrlInterceptor {
+        return DynamicBaseUrlInterceptor(settingsDataStore)
     }
 
     @Provides
     @Singleton
     fun provideOkHttpClient(
+        dynamicBaseUrlInterceptor: DynamicBaseUrlInterceptor,
         authInterceptor: AuthInterceptor,
         tokenManager: TokenManager,
-        baseUrl: String,
+        settingsDataStore: SettingsDataStore,
     ): OkHttpClient {
         val logging = HttpLoggingInterceptor().apply {
             level = HttpLoggingInterceptor.Level.BODY
         }
         return OkHttpClient.Builder()
+            .addInterceptor(dynamicBaseUrlInterceptor)
             .addInterceptor(authInterceptor)
             .addInterceptor(logging)
-            .authenticator(TokenAuthenticator(tokenManager, baseUrl))
+            .authenticator(TokenAuthenticator(tokenManager, settingsDataStore))
             .connectTimeout(15, TimeUnit.SECONDS)
             .readTimeout(15, TimeUnit.SECONDS)
             .build()
@@ -53,9 +55,9 @@ object AppModule {
 
     @Provides
     @Singleton
-    fun provideRetrofit(client: OkHttpClient, baseUrl: String): Retrofit {
+    fun provideRetrofit(client: OkHttpClient): Retrofit {
         return Retrofit.Builder()
-            .baseUrl(baseUrl)
+            .baseUrl(PLACEHOLDER_BASE_URL)
             .client(client)
             .addConverterFactory(GsonConverterFactory.create())
             .build()
@@ -76,6 +78,10 @@ object AppModule {
     @Provides
     @Singleton
     fun provideWarehouseApi(retrofit: Retrofit): WarehouseApi = retrofit.create(WarehouseApi::class.java)
+
+    @Provides
+    @Singleton
+    fun provideConfigApi(retrofit: Retrofit): ConfigApi = retrofit.create(ConfigApi::class.java)
 
     @Provides
     @Singleton

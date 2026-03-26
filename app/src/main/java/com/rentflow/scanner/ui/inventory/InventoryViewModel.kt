@@ -134,43 +134,8 @@ class InventoryViewModel @Inject constructor(
             _uiState.update { it.copy(selectedZone = zone, isLoading = true, error = null) }
 
             val sessionResult = scannerRepository.createSession("inventory")
-            val isDemo = sessionResult.isFailure
-
-            if (sessionResult.isSuccess) {
-                _uiState.update { it.copy(sessionId = sessionResult.getOrNull()!!.id) }
-            } else {
-                // Demo mode: use a mock session id
-                _uiState.update { it.copy(sessionId = "demo-session-${zone.id}") }
-            }
-
-            // Load expected items for this zone
-            // TODO: replace with real API call when backend supports it
-            if (isDemo) {
-                val demoExpected = generateDemoExpectedItems(zone)
-                _uiState.update { it.copy(expectedItems = demoExpected, isLoading = false) }
-            } else {
-                // For real backend, call API to get expected items for the zone
-                // For now, fall back to demo items if no dedicated endpoint exists
-                val demoExpected = generateDemoExpectedItems(zone)
-                _uiState.update { it.copy(expectedItems = demoExpected, isLoading = false) }
-            }
-        }
-    }
-
-    private fun generateDemoExpectedItems(zone: WarehouseZone): List<Equipment> {
-        val categories = listOf("Bohrmaschine", "Stichsaege", "Kompressor", "Stromerzeuger", "Ruettler")
-        return (1..5).map { index ->
-            Equipment(
-                id = "expected-${zone.id}-$index",
-                barcode = "INV-${zone.id}-${String.format("%04d", index)}",
-                name = "${categories[index - 1]} #${zone.id}.$index",
-                category = categories[index - 1],
-                status = EquipmentStatus.AVAILABLE,
-                location = zone.name,
-                projectName = null,
-                rfidTag = "RFID-${zone.id}-${String.format("%04d", index)}",
-                imageUrl = null,
-            )
+            val sessionId = sessionResult.getOrNull()?.id ?: "local-session-${zone.id}"
+            _uiState.update { it.copy(sessionId = sessionId, expectedItems = emptyList(), isLoading = false) }
         }
     }
 

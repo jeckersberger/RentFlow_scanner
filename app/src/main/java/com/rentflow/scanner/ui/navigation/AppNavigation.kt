@@ -11,6 +11,8 @@ import com.rentflow.scanner.ui.home.HomeScreen
 import com.rentflow.scanner.ui.inventory.InventoryScreen
 import com.rentflow.scanner.ui.login.LoginScreen
 import com.rentflow.scanner.ui.queue.PendingQueueScreen
+import com.rentflow.scanner.ui.createproject.CreateProjectScreen
+import com.rentflow.scanner.ui.rfidassign.RfidAssignScreen
 import com.rentflow.scanner.ui.scan.ScanScreen
 import com.rentflow.scanner.ui.settings.SettingsScreen
 
@@ -23,6 +25,8 @@ object Routes {
     const val CHECKIN = "checkin"
     const val INVENTORY = "inventory"
     const val EQUIPMENT_DETAIL = "equipment/{barcode}"
+    const val RFID_ASSIGN = "rfid_assign"
+    const val CREATE_PROJECT = "create_project"
     const val SETTINGS = "settings"
     const val QUEUE = "queue"
 
@@ -48,6 +52,8 @@ fun AppNavigation(startDestination: String = Routes.LOGIN) {
                 onNavigateToCheckOut = { navController.navigate(Routes.CHECKOUT) },
                 onNavigateToCheckIn = { navController.navigate(Routes.CHECKIN) },
                 onNavigateToInventory = { navController.navigate(Routes.INVENTORY) },
+                onNavigateToRfidAssign = { navController.navigate(Routes.RFID_ASSIGN) },
+                onNavigateToCreateProject = { navController.navigate(Routes.CREATE_PROJECT) },
                 onNavigateToSettings = { navController.navigate(Routes.SETTINGS) },
                 onNavigateToQueue = { navController.navigate(Routes.QUEUE) },
                 onLogout = {
@@ -105,6 +111,12 @@ fun AppNavigation(startDestination: String = Routes.LOGIN) {
                     }
                 },
             )
+        }
+        composable(Routes.RFID_ASSIGN) {
+            RfidAssignScreen(onBack = { navController.popBackStack() })
+        }
+        composable(Routes.CREATE_PROJECT) {
+            CreateProjectScreen(onBack = { navController.popBackStack() })
         }
         composable(Routes.EQUIPMENT_DETAIL) {
             EquipmentDetailScreen(onBack = { navController.popBackStack() })

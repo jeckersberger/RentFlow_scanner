@@ -18,7 +18,10 @@ class FindMyScannerWorker @AssistedInject constructor(
 
     override suspend fun doWork(): Result {
         return try {
-            val response = scannerApi.checkRingCommand()
+            val deviceId = android.os.Build.SERIAL ?: android.provider.Settings.Secure.getString(
+                applicationContext.contentResolver, android.provider.Settings.Secure.ANDROID_ID
+            )
+            val response = scannerApi.checkRingCommand(deviceId)
             if (response.isSuccessful) {
                 val shouldRing = response.body()?.data?.ring == true
                 if (shouldRing) {

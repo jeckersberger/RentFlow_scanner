@@ -58,7 +58,7 @@ class LoginViewModel @Inject constructor(
             return
         }
         if (state.email.isBlank() || state.password.isBlank()) {
-            _uiState.update { it.copy(error = "Email und Passwort erforderlich") }
+            _uiState.update { it.copy(error = "Benutzername und Passwort erforderlich") }
             return
         }
         viewModelScope.launch {
@@ -88,37 +88,33 @@ class LoginViewModel @Inject constructor(
     fun onQrCodeScanned(qrData: String) {
         _uiState.update { it.copy(showQrScanner = false) }
 
-        // Try to parse as JSON setup QR: {"url":"https://...","token":"...","tenant_id":"..."}
+        // Try to parse as JSON: {"token":"...","server":"https://..."} or {"url":"...","token":"..."}
         try {
             val json = org.json.JSONObject(qrData)
-            val url = json.optString("url", "")
+            val url = json.optString("server", "").ifBlank { json.optString("url", "") }
             val token = json.optString("token", "")
-            val tenantId = json.optString("tenant_id", "")
 
             if (url.isNotBlank()) {
-                // Setup QR — set server URL
-                viewModelScope.launch { settingsDataStore.setServerUrl(url) }
                 _uiState.update { it.copy(serverUrl = url) }
             }
 
             if (token.isNotBlank()) {
-                // Quick-login QR with token
-                _uiState.update { it.copy(isLoading = true, error = null) }
-                viewModelScope.launch {
-                    val result = authRepository.qrLogin(token)
-                    _uiState.update {
-                        if (result.isSuccess) {
-                            sessionTimeoutManager.reset()
-                            it.copy(isLoading = false, loginSuccess = true)
-                        } else {
-                            it.copy(isLoading = false, error = result.exceptionOrNull()?.message ?: "QR-Login fehlgeschlagen")
-                        }
-                    }
-                }
+                performQrLogin(token, url)
+            } else if (url.isNotBlank()) {
+                viewModelScope.launch { settingsDataStore.setServerUrl(url) }
             }
             return
         } catch (_: Exception) {
-            // Not JSON — try as plain URL
+            // Not JSON — try other formats
+        }
+
+        // Deep link: rentflow://qr-login/TOKEN
+        if (qrData.startsWith("rentflow://qr-login/")) {
+            val token = qrData.removePrefix("rentflow://qr-login/")
+            if (token.isNotBlank()) {
+                performQrLogin(token)
+                return
+            }
         }
 
         // If it looks like a URL, use as server URL
@@ -128,10 +124,20 @@ class LoginViewModel @Inject constructor(
             return
         }
 
-        // Fallback: treat as login token
+        // Fallback: treat as plain login token
+        performQrLogin(qrData)
+    }
+
+    private fun performQrLogin(token: String, serverUrl: String? = null) {
+        val currentServerUrl = serverUrl ?: _uiState.value.serverUrl
+        if (currentServerUrl.isBlank()) {
+            _uiState.update { it.copy(error = "Server-URL erforderlich. Bitte zuerst Server-URL eingeben.") }
+            return
+        }
         _uiState.update { it.copy(isLoading = true, error = null) }
         viewModelScope.launch {
-            val result = authRepository.qrLogin(qrData)
+            settingsDataStore.setServerUrl(currentServerUrl)
+            val result = authRepository.qrLogin(token)
             _uiState.update {
                 if (result.isSuccess) {
                     sessionTimeoutManager.reset()

@@ -139,10 +139,8 @@ class CheckOutViewModel @Inject constructor(
                     _uiState.update { it.copy(expectedEquipmentIds = ids, expectedItems = equipment) }
                 },
                 onFailure = {
-                    // Demo mode: generate sample expected items
-                    val demoItems = generateDemoExpectedItems(project.name)
-                    val ids = demoItems.map { it.id }.toSet()
-                    _uiState.update { s -> s.copy(expectedEquipmentIds = ids, expectedItems = demoItems) }
+                    // No equipment list available — allow scanning anything
+                    _uiState.update { s -> s.copy(expectedEquipmentIds = emptySet(), expectedItems = emptyList()) }
                 },
             )
             scannerRepository.createSession("out", project.id).fold(
@@ -277,8 +275,16 @@ class CheckOutViewModel @Inject constructor(
         val state = _uiState.value
         if (state.sessionId == null) return
         _uiState.update { it.copy(showSignature = false) }
-        // TODO: Upload signature bitmap to server when backend available
-        completeCheckOut()
+        viewModelScope.launch {
+            // Upload signature if available
+            if (signatureBitmap != null && !state.sessionId.startsWith("local-")) {
+                val stream = java.io.ByteArrayOutputStream()
+                signatureBitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, stream)
+                val base64 = android.util.Base64.encodeToString(stream.toByteArray(), android.util.Base64.NO_WRAP)
+                scannerRepository.uploadSignature(state.sessionId, base64)
+            }
+            completeCheckOut()
+        }
     }
 
     private fun completeCheckOut() {
@@ -296,23 +302,6 @@ class CheckOutViewModel @Inject constructor(
                     // Local session or server error — complete locally
                     _uiState.update { it.copy(isLoading = false, showSummary = true) }
                 },
-            )
-        }
-    }
-
-    private fun generateDemoExpectedItems(projectName: String): List<Equipment> {
-        val names = listOf("PAR-64 #1", "Moving Head #1", "Mischpult CL5", "XLR Kabel 15m", "Stativ #3")
-        return names.mapIndexed { i, name ->
-            Equipment(
-                id = "expected-$i",
-                barcode = "EQ-${String.format("%04d", i + 1)}",
-                name = name,
-                category = "Veranstaltungstechnik",
-                status = EquipmentStatus.AVAILABLE,
-                location = "Regal A${i + 1}",
-                projectName = null,
-                rfidTag = null,
-                imageUrl = null,
             )
         }
     }

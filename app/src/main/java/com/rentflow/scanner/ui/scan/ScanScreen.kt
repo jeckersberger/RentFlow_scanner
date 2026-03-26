@@ -147,6 +147,23 @@ fun ScanScreen(
                 state.error?.let {
                     Spacer(Modifier.height(16.dp))
                     Text(it, color = MaterialTheme.colorScheme.error)
+                    if (state.pendingRfidTag != null) {
+                        Spacer(Modifier.height(12.dp))
+                        Button(
+                            onClick = { viewModel.startAssignFlow() },
+                            modifier = Modifier.fillMaxWidth().padding(horizontal = 32.dp),
+                            colors = ButtonDefaults.buttonColors(containerColor = Cyan),
+                        ) {
+                            Icon(Icons.Default.Link, contentDescription = null, modifier = Modifier.padding(end = 8.dp))
+                            Text(stringResource(R.string.scan_assign_rfid))
+                        }
+                        Text(
+                            stringResource(R.string.scan_assign_rfid_hint),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = 4.dp),
+                        )
+                    }
                 }
 
                 // Show RFID tags if in RFID mode

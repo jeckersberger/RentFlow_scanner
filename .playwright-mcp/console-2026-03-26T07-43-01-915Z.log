@@ -1,0 +1,16 @@
+[   29829ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://dash.je-soundulight.de/api/v1/auth/login:0
+[   53076ms] [ERROR] Failed to load resource: the server responded with a status of 502 () @ https://dash.je-soundulight.de/api/v1/projects?offset=0&limit=1000:0
+[   53077ms] [ERROR] Failed to load resource: the server responded with a status of 502 () @ https://dash.je-soundulight.de/api/v1/invoices?page=1&limit=1000:0
+[   53085ms] [ERROR] Failed to load resource: the server responded with a status of 502 () @ https://dash.je-soundulight.de/api/v1/equipment?limit=1000:0
+[   53085ms] [ERROR] Failed to load resource: the server responded with a status of 502 () @ https://dash.je-soundulight.de/api/v1/invoices?page=1&limit=100:0
+[   53085ms] [ERROR] Failed to load resource: the server responded with a status of 502 () @ https://dash.je-soundulight.de/api/v1/invoices?page=1&limit=500:0
+[   53086ms] [ERROR] Failed to load resource: the server responded with a status of 502 () @ https://dash.je-soundulight.de/api/v1/projects?offset=0&limit=50:0
+[   53086ms] [ERROR] Failed to load resource: the server responded with a status of 502 () @ https://dash.je-soundulight.de/api/v1/equipment:0
+[   53086ms] [ERROR] Failed to load resource: the server responded with a status of 502 () @ https://dash.je-soundulight.de/api/v1/projects?offset=0&limit=1:0
+[  230425ms] [ERROR] Failed to load resource: the server responded with a status of 502 () @ https://dash.je-soundulight.de/api/v1/auth/qr-status/ca9e12285779a8e1a015be3be77ee2ed46fd8cb5be225040000ffaf154f0f98f:0
+[  472008ms] [ERROR] Failed to load resource: the server responded with a status of 401 () @ https://dash.je-soundulight.de/api/v1/auth/qr-token:0
+[  472015ms] [ERROR] QR token generation failed: AxiosError: Request failed with status code 401
+    at $n (https://dash.je-soundulight.de/assets/index-nLIhprEA.js:2:32123)
+    at XMLHttpRequest.f (https://dash.je-soundulight.de/assets/index-nLIhprEA.js:2:36653)
+    at ja.request (https://dash.je-soundulight.de/assets/index-nLIhprEA.js:2:45391)
+    at async https://dash.je-soundulight.de/assets/index-nLIhprEA.js:2:125177 @ https://dash.je-soundulight.de/assets/index-nLIhprEA.js:1

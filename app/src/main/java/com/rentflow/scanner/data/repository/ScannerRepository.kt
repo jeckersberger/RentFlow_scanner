@@ -2,6 +2,10 @@ package com.rentflow.scanner.data.repository
 
 import android.content.Context
 import com.rentflow.scanner.data.api.AdHocBookingRequest
+import com.rentflow.scanner.data.api.CreateCustomerRequest
+import com.rentflow.scanner.data.api.CreateProjectRequest
+import com.rentflow.scanner.data.api.CustomerDto
+import com.rentflow.scanner.data.api.ProjectCreated
 import com.rentflow.scanner.data.api.ScanRequest
 import com.rentflow.scanner.data.api.ScannerApi
 import com.rentflow.scanner.data.api.SessionCreateRequest
@@ -183,6 +187,58 @@ class ScannerRepository @Inject constructor(
         }
     }
 
+    suspend fun createProject(request: CreateProjectRequest): Result<ProjectCreated> {
+        return try {
+            val response = scannerApi.createProject(request)
+            if (response.isSuccessful && response.body()?.data != null) {
+                Result.success(response.body()!!.data!!)
+            } else {
+                Result.failure(Exception(response.body()?.message ?: "Projekt konnte nicht erstellt werden"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun searchCustomers(query: String): Result<List<CustomerDto>> {
+        return try {
+            val response = scannerApi.searchCustomers(query)
+            if (response.isSuccessful && response.body()?.data != null) {
+                Result.success(response.body()!!.data!!)
+            } else {
+                Result.success(emptyList())
+            }
+        } catch (_: Exception) {
+            Result.success(emptyList())
+        }
+    }
+
+    suspend fun createCustomer(request: CreateCustomerRequest): Result<CustomerDto> {
+        return try {
+            val response = scannerApi.createCustomer(request)
+            if (response.isSuccessful && response.body()?.data != null) {
+                Result.success(response.body()!!.data!!)
+            } else {
+                Result.failure(Exception(response.body()?.message ?: "Kunde konnte nicht erstellt werden"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun getUntaggedEquipment(): Result<List<Equipment>> {
+        return try {
+            val response = scannerApi.getUntaggedEquipment()
+            if (response.isSuccessful && response.body()?.data != null) {
+                Result.success(response.body()!!.data!!)
+            } else {
+                Result.success(emptyList())
+            }
+        } catch (_: Exception) {
+            Result.success(emptyList())
+        }
+    }
+
     suspend fun listInventoryJobs(): Result<List<com.rentflow.scanner.data.api.InventoryJob>> {
         return try {
             val response = scannerApi.listInventoryJobs()
@@ -223,6 +279,17 @@ class ScannerRepository @Inject constructor(
             if (response.isSuccessful) Result.success(Unit)
             else Result.failure(Exception("Inventur konnte nicht abgeschlossen werden"))
         } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    suspend fun uploadSignature(sessionId: String, signatureBase64: String): Result<Unit> {
+        return try {
+            val response = scannerApi.uploadSignature(sessionId, mapOf("signature" to signatureBase64))
+            if (response.isSuccessful) Result.success(Unit)
+            else Result.failure(Exception(response.body()?.message ?: "Signature upload failed"))
+        } catch (e: Exception) {
+            // Non-critical: session can complete without signature upload
             Result.failure(e)
         }
     }

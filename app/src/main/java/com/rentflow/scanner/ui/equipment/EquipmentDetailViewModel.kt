@@ -10,7 +10,6 @@ import com.rentflow.scanner.data.repository.ScannerRepository
 import com.rentflow.scanner.data.repository.WarehouseRepository
 import com.rentflow.scanner.domain.model.Equipment
 import com.rentflow.scanner.domain.model.ScanResult
-import com.rentflow.scanner.domain.model.ScanType
 import com.rentflow.scanner.domain.model.WarehouseZone
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
@@ -76,36 +75,7 @@ class EquipmentDetailViewModel @Inject constructor(
     private fun loadHistory() {
         viewModelScope.launch {
             scannerRepository.getScanHistory(barcode).onSuccess { history ->
-                if (history.isEmpty()) {
-                    // Demo mode: generate fake history entries
-                    val now = System.currentTimeMillis()
-                    val demoHistory = listOf(
-                        ScanResult(
-                            id = "demo-h1",
-                            barcode = barcode,
-                            equipment = null,
-                            timestamp = now - 86_400_000L * 2,
-                            scanType = ScanType.OUT,
-                        ),
-                        ScanResult(
-                            id = "demo-h2",
-                            barcode = barcode,
-                            equipment = null,
-                            timestamp = now - 86_400_000L,
-                            scanType = ScanType.IN,
-                        ),
-                        ScanResult(
-                            id = "demo-h3",
-                            barcode = barcode,
-                            equipment = null,
-                            timestamp = now - 3_600_000L,
-                            scanType = ScanType.INVENTORY,
-                        ),
-                    )
-                    _uiState.update { it.copy(history = demoHistory) }
-                } else {
-                    _uiState.update { it.copy(history = history) }
-                }
+                _uiState.update { it.copy(history = history) }
             }
         }
     }

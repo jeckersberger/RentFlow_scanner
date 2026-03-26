@@ -2,14 +2,17 @@ package com.rentflow.scanner.data.api
 
 import android.util.Log
 import com.google.gson.Gson
+import com.rentflow.scanner.data.preferences.SettingsDataStore
 import com.rentflow.scanner.data.preferences.TokenManager
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 
 class TokenAuthenticator(
     private val tokenManager: TokenManager,
-    private val baseUrl: String,
+    private val settingsDataStore: SettingsDataStore,
 ) : Authenticator {
     private val gson = Gson()
     private val lock = Any()
@@ -37,6 +40,11 @@ class TokenAuthenticator(
             return try {
                 val refreshBody = gson.toJson(RefreshRequest(refreshToken))
                     .toRequestBody("application/json".toMediaType())
+                val baseUrl = runBlocking {
+                    val url = settingsDataStore.serverUrl.first()
+                    val base = url.ifBlank { "http://localhost" }
+                    if (base.endsWith("/")) base else "$base/"
+                }
                 val refreshRequest = Request.Builder()
                     .url("${baseUrl}api/v1/auth/refresh")
                     .post(refreshBody)

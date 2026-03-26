@@ -24,6 +24,7 @@ data class ScanUiState(
     val rfidTags: List<RfidReadEvent> = emptyList(),
     val isScanning: Boolean = false,
     val scanMode: String = SettingsDataStore.SCAN_MODE_BARCODE,
+    val pendingRfidTag: String? = null,
 )
 
 @HiltViewModel
@@ -105,13 +106,20 @@ class ScanViewModel @Inject constructor(
             scannerRepository.resolveBarcode(identifier).fold(
                 onSuccess = { equipment ->
                     scanFeedback.onScanSuccess()
-                    _uiState.update { it.copy(isLoading = false, equipment = equipment) }
+                    _uiState.update { it.copy(isLoading = false, equipment = equipment, pendingRfidTag = null) }
                 },
                 onFailure = {
-                    // Tag not linked to equipment yet — show as unlinked
-                    _uiState.update { it.copy(isLoading = false, error = "Tag nicht zugeordnet: $identifier") }
+                    // Tag not linked to equipment yet — show as unlinked with assign option
+                    _uiState.update { it.copy(isLoading = false, error = "Tag nicht zugeordnet: $identifier", pendingRfidTag = identifier) }
                 },
             )
+        }
+    }
+
+    fun startAssignFlow() {
+        // Switch to barcode mode so user can scan the equipment barcode
+        viewModelScope.launch {
+            settingsDataStore.setScanMode(SettingsDataStore.SCAN_MODE_BARCODE)
         }
     }
 

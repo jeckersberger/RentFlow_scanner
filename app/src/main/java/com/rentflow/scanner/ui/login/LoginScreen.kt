@@ -106,10 +106,11 @@ fun LoginScreen(
             OutlinedTextField(
                 value = state.email,
                 onValueChange = viewModel::onEmailChange,
-                label = { Text(stringResource(R.string.login_email)) },
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+                label = { Text(stringResource(R.string.login_username_or_email)) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
                 singleLine = true,
                 modifier = Modifier.fillMaxWidth(),
+                placeholder = { Text("jeck oder email@beispiel.de") },
             )
             Spacer(Modifier.height(12.dp))
 
